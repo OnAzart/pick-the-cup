@@ -23,10 +23,19 @@ Format: **Current state** (below) always reflects the latest known status — up
 - `SPONSOR_NOTIFY_EMAIL` env var not set — sponsor inquiries are stored in Postgres either way, but no notification email goes out until this is added in Vercel.
 - Referral-link tracking and creator-branded share cards (discussed as the two things the outreach plan depends on) — **not built yet**.
 - Creator outreach research is done (real candidate list, contact methods, messaging templates, offer structure) but **not yet saved to `docs/05-outreach-assets.md`**.
-- `future.md` roadmap items (match dates, highlight-wrong-picks, leaderboard, scoring) — not started.
+- `future.md` roadmap items 1-2 (match dates, highlight-wrong-picks) shipped 2026-07-02 — see below. Items 3-4 (leaderboard, scoring) and a new "compare with a friend" idea are scoped in `future.md` but **not started**.
 - Growth plan's Day 1-2 action items (Fiverr briefs, first content) are the user's own real-world actions, not code — not something verifiable from here.
 
 ## Sessions
+
+### 2026-07-02
+
+**Summary:** shipped `future.md` items 1-2 — kickoff dates and correct/wrong pick borders on the bracket. Discussed leaderboard/social-interaction ideas; decided leaderboard identity will be anonymous rank only (no name/email shown), deferred implementation.
+
+Details:
+1. **Kickoff dates** — `/api/locked` now also returns a `dates: Record<localId, isoString>` map. Round-of-32 dates resolve unconditionally (fixed FIFA schedule, doesn't need both teams known yet); later-round dates only resolve once the real team pair can be matched (same constraint the existing `picks` cascade already had). Rendered as a small label next to each match's ID (`app/BracketApp.tsx`), and the Final's previously-hardcoded `07/19/2026` now uses the live value with that hardcoded string as fallback.
+2. **Correct/wrong pick borders** — the key discovery: `state.picks` (the user's own raw prediction, in `localStorage`) was never being overwritten by `locked.picks` (the real result) — only the *merged* view (`effPicks`) was. That meant the data needed to diff "what the user guessed" vs. "what actually happened" already existed; no schema or persistence change was needed, purely a frontend diff + border color (`app/BracketApp.tsx`'s new `pickVerdict()` helper). Border is green (`#14B87A`) if the user's own pick for that match equals the real winner, red (`#E5484D`) if it doesn't, and left plain black if the user never actually made a pick for that specific match (so a diverged bracket path doesn't get falsely marked wrong).
+3. **Verification** — local dev has no `POSTGRES_URL` (per the gotcha above), so `/api/locked` 500s locally. Mocked it via Playwright's `page.route()` to return fake locked data (one correct pick, one wrong pick, both with dates) and confirmed visually: red border + strikethrough on the wrong guess, green + checkmark on the correct one, dates rendering under both match IDs and the Final. No regressions elsewhere in the bracket.
 
 ### 2026-07-01
 

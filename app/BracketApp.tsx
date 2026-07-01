@@ -27,6 +27,28 @@ interface BracketState {
 interface LockedState {
   slots: Record<string, string>;
   picks: Record<string, string>;
+  dates: Record<string, string>;
+}
+
+// Compact local-time kickoff label, e.g. "Jun 27 · 3:00 PM" — falls back to
+// nothing (not "Invalid Date") if the ISO string is missing or unparseable.
+function formatKickoff(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
+
+// A match only counts as "anticipated" if the user actually recorded their
+// own pick for it (state.picks, never overwritten by the real result) —
+// slots inherited from a diverged earlier guess don't count.
+function pickVerdict(matchId: string, userPicks: Record<string, string>, lockedPicks: Record<string, string>): 'correct' | 'wrong' | null {
+  const real = lockedPicks[matchId];
+  const mine = userPicks[matchId];
+  if (!real || !mine) return null;
+  return mine === real ? 'correct' : 'wrong';
 }
 
 function loadState(): BracketState {
@@ -62,7 +84,7 @@ const team = (code: string) => {
 /* ─── Main component ─────────────────────────────────────────── */
 export function BracketApp() {
   const [state, setStateRaw] = useState<BracketState>({ slots: {}, picks: {}, email: '' });
-  const [locked, setLocked] = useState<LockedState>({ slots: {}, picks: {} });
+  const [locked, setLocked] = useState<LockedState>({ slots: {}, picks: {}, dates: {} });
   const [showChampion, setShowChampion] = useState(false);
   const [showSponsor, setShowSponsor]   = useState(false);
   const [sponsorDone, setSponsorDone]   = useState(false);
@@ -89,7 +111,7 @@ export function BracketApp() {
   useEffect(() => {
     fetch('/api/locked')
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setLocked({ slots: data.slots || {}, picks: data.picks || {} }); })
+      .then(data => { if (data) setLocked({ slots: data.slots || {}, picks: data.picks || {}, dates: data.dates || {} }); })
       .catch(() => {});
   }, []);
   useEffect(() => {
@@ -340,6 +362,7 @@ export function BracketApp() {
               matchIds={col.matches}
               res={res} slots={effSlots} used={used}
               lockedSlots={locked.slots} lockedPicks={locked.picks}
+              userPicks={picks} dates={locked.dates}
               side="left" colIdx={ci} colCount={visibleLeftCols.length}
               isFinal={false}
               onPick={pick} onSelect={selectSlot} onClear={clearSlot}
@@ -350,6 +373,7 @@ export function BracketApp() {
           <CenterColumn
             res={res} used={used}
             lockedPicks={locked.picks}
+            userPicks={picks} dates={locked.dates}
             onPick={pick}
           />
 
@@ -361,6 +385,7 @@ export function BracketApp() {
               matchIds={col.matches}
               res={res} slots={effSlots} used={used}
               lockedSlots={locked.slots} lockedPicks={locked.picks}
+              userPicks={picks} dates={locked.dates}
               side="right" colIdx={ci} colCount={visibleRightCols.length}
               isFinal={false}
               onPick={pick} onSelect={selectSlot} onClear={clearSlot}
@@ -510,10 +535,11 @@ function InstructionBand() {
 }
 
 /* ─── Bracket Column ─────────────────────────────────────────── */
-function BracketColumn({ title, matchIds, res, slots, used, lockedSlots, lockedPicks, side, colIdx, colCount, isFinal, onPick, onSelect, onClear }: {
+function BracketColumn({ title, matchIds, res, slots, used, lockedSlots, lockedPicks, userPicks, dates, side, colIdx, colCount, isFinal, onPick, onSelect, onClear }: {
   title: string; matchIds: string[];
   res: Record<string, MatchResult>; slots: Record<string, string>; used: Set<string>;
   lockedSlots: Record<string, string>; lockedPicks: Record<string, string>;
+  userPicks: Record<string, string>; dates: Record<string, string>;
   side: 'left' | 'right'; colIdx: number; colCount: number; isFinal: boolean;
   onPick: (id: string, code: string) => void;
   onSelect: (key: string, code: string) => void;
@@ -538,12 +564,18 @@ function BracketColumn({ title, matchIds, res, slots, used, lockedSlots, lockedP
             if (colIdx < colCount - 1) conns.push({ position:'absolute', top:'50%', right:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
             if (p < matchIds.length - 1 && p % 2 === 0) conns.push({ position:'absolute', top:'50%', left:-7, width:2, height:'100%', background:BK });
           }
+          const verdict = pickVerdict(id, userPicks, lockedPicks);
+          const cardBorder = verdict === 'correct' ? '#14B87A' : verdict === 'wrong' ? '#E5484D' : '#161616';
+          const kickoff = formatKickoff(dates[id]);
           return (
             <div key={id} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
               {conns.map((c, i) => <div key={i} style={c} />)}
               <div style={{ width:148 }}>
-                <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, color:'#c3bfb5', paddingLeft:3, marginBottom:2 }}>{id}</div>
-                <div style={{ border:'2.5px solid #161616', borderRadius:12, background:'#fff', boxShadow:'3px 3px 0 #161616', overflow:'hidden' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, color:'#c3bfb5', paddingLeft:3, marginBottom:2 }}>
+                  <span>{id}</span>
+                  {kickoff && <span>{kickoff}</span>}
+                </div>
+                <div style={{ border:`2.5px solid ${cardBorder}`, borderRadius:12, background:'#fff', boxShadow:`3px 3px 0 ${cardBorder}`, overflow:'hidden' }}>
                   <MatchSlot matchId={id} side="a" slot={m.a} mr={mr} slots={slots} used={used} lockedSlots={lockedSlots} lockedPicks={lockedPicks} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
                   <div style={{ height:2, background:'#161616' }} />
                   <MatchSlot matchId={id} side="b" slot={m.b} mr={mr} slots={slots} used={used} lockedSlots={lockedSlots} lockedPicks={lockedPicks} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
@@ -622,9 +654,10 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, lockedSlots, lockedPi
 }
 
 /* ─── Center Column (Final + 3rd) ────────────────────────────── */
-function CenterColumn({ res, used, lockedPicks, onPick }: {
+function CenterColumn({ res, used, lockedPicks, userPicks, dates, onPick }: {
   res: Record<string, MatchResult>; used: Set<string>;
   lockedPicks: Record<string, string>;
+  userPicks: Record<string, string>; dates: Record<string, string>;
   onPick: (id: string, code: string) => void;
 }) {
   const finalRes = res['M104'];
@@ -633,6 +666,12 @@ function CenterColumn({ res, used, lockedPicks, onPick }: {
   const thirdM   = KOby['M103'];
   const finalLocked = !!lockedPicks['M104'];
   const thirdLocked = !!lockedPicks['M103'];
+  const finalVerdict = pickVerdict('M104', userPicks, lockedPicks);
+  const thirdVerdict = pickVerdict('M103', userPicks, lockedPicks);
+  const finalBorder = finalVerdict === 'correct' ? '#14B87A' : finalVerdict === 'wrong' ? '#E5484D' : '#161616';
+  const thirdBorder = thirdVerdict === 'correct' ? '#14B87A' : thirdVerdict === 'wrong' ? '#E5484D' : '#161616';
+  const finalKickoff = formatKickoff(dates['M104']);
+  const thirdKickoff = formatKickoff(dates['M103']);
 
   const FinalSlot = ({ side }: { side: 'a' | 'b' }) => {
     const code = finalRes?.[side] ?? null;
@@ -680,16 +719,16 @@ function CenterColumn({ res, used, lockedPicks, onPick }: {
     <div style={{ display:'flex', flexDirection:'column', flex:'none', width:236, justifyContent:'center', gap:18, padding:'0 6px' }}>
       <div style={{ textAlign:'center' }}>
         <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, color:'#FF3D8B', letterSpacing:'.08em' }}>🏆 THE FINAL</div>
-        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f', marginTop:2 }}>M104 · 07/19/2026</div>
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f', marginTop:2 }}>M104 · {finalKickoff || '07/19/2026'}</div>
       </div>
-      <div style={{ border:'3px solid #161616', borderRadius:16, background:'linear-gradient(160deg,#FFF6E2,#fff)', boxShadow:'5px 5px 0 #161616', overflow:'hidden' }}>
+      <div style={{ border:`3px solid ${finalBorder}`, borderRadius:16, background:'linear-gradient(160deg,#FFF6E2,#fff)', boxShadow:`5px 5px 0 ${finalBorder}`, overflow:'hidden' }}>
         <FinalSlot side="a" />
         <div style={{ height:2.5, background:'#161616' }} />
         <FinalSlot side="b" />
       </div>
       <div style={{ marginTop:8, textAlign:'center' }}>
-        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f', marginBottom:4 }}>3RD PLACE · M103</div>
-        <div style={{ border:'2px solid #161616', borderRadius:11, background:'#fff', boxShadow:'2px 2px 0 #161616', overflow:'hidden' }}>
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f', marginBottom:4 }}>3RD PLACE · M103{thirdKickoff ? ` · ${thirdKickoff}` : ''}</div>
+        <div style={{ border:`2px solid ${thirdBorder}`, borderRadius:11, background:'#fff', boxShadow:`2px 2px 0 ${thirdBorder}`, overflow:'hidden' }}>
           <ThirdSlot side="a" />
           <div style={{ height:1.5, background:'#161616' }} />
           <ThirdSlot side="b" />

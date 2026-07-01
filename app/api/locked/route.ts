@@ -51,6 +51,7 @@ interface ResultRow {
   away: string | null;
   status: string;
   winner: string | null;
+  utcDate: string | null;
 }
 
 export async function GET() {
@@ -58,9 +59,9 @@ export async function GET() {
 
   const [standingsRows, r32Rows, laterRows] = await Promise.all([
     sql`SELECT REPLACE(group_name, 'GROUP_', '') AS letter, team_code, position FROM standings;`,
-    sql`SELECT match_id, home_code, away_code, status, winner_code FROM results WHERE stage = 'LAST_32';`,
+    sql`SELECT match_id, home_code, away_code, status, winner_code, utc_date FROM results WHERE stage = 'LAST_32';`,
     sql`
-      SELECT stage, home_code, away_code, status, winner_code FROM results
+      SELECT stage, home_code, away_code, status, winner_code, utc_date FROM results
       WHERE stage IN ('LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL');
     `,
   ]);
@@ -79,6 +80,7 @@ export async function GET() {
       away: row.away_code as string | null,
       status: row.status as string,
       winner: row.winner_code as string | null,
+      utcDate: row.utc_date as string | null,
     });
   }
 
@@ -91,6 +93,7 @@ export async function GET() {
       away: row.away_code as string | null,
       status: row.status as string,
       winner: row.winner_code as string | null,
+      utcDate: row.utc_date as string | null,
     });
     laterByStage.set(stage, list);
   }
@@ -98,11 +101,15 @@ export async function GET() {
   const slots: Record<string, string> = {};
   const picks: Record<string, string> = {};
   const losers: Record<string, string> = {};
+  const dates: Record<string, string> = {};
 
-  // Round of 32: resolve both leaves directly from the real fixture.
+  // Round of 32: fixed schedule, so the kickoff date is known from day one —
+  // resolve it independent of whether the two participating teams are known yet.
   for (const [localId, fdId] of Object.entries(R32_FD_MATCH_ID)) {
     const real = r32ByMatchId.get(fdId);
-    if (!real || !real.home || !real.away) continue;
+    if (!real) continue;
+    if (real.utcDate) dates[localId] = real.utcDate;
+    if (!real.home || !real.away) continue;
     const m = KOby[localId];
     const aExpected = groupExpected(m.a.r, posByGroup);
     const bExpected = groupExpected(m.b.r, posByGroup);
@@ -121,7 +128,8 @@ export async function GET() {
     }
   }
 
-  // Later rounds cascade: only resolvable once both feeder picks are locked.
+  // Later rounds cascade: the fixture (and its date) is only identifiable once
+  // both feeder picks are locked and the real team pair can be matched.
   for (const round of LATER_ROUNDS) {
     const candidates = laterByStage.get(round.stage) ?? [];
     for (const localId of round.ids) {
@@ -132,11 +140,13 @@ export async function GET() {
       const real = candidates.find(r =>
         (r.home === teamA && r.away === teamB) || (r.home === teamB && r.away === teamA)
       );
-      if (!real || real.status !== 'FINISHED' || !real.winner) continue;
+      if (!real) continue;
+      if (real.utcDate) dates[localId] = real.utcDate;
+      if (real.status !== 'FINISHED' || !real.winner) continue;
       picks[localId] = real.winner;
       losers[localId] = real.winner === teamA ? teamB : teamA;
     }
   }
 
-  return NextResponse.json({ slots, picks }, { headers: CACHE_HEADERS });
+  return NextResponse.json({ slots, picks, dates }, { headers: CACHE_HEADERS });
 }
