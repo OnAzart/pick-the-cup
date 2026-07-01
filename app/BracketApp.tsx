@@ -65,6 +65,7 @@ export function BracketApp() {
   const [showLoad, setShowLoad]         = useState(false);
   const [loadEmail, setLoadEmail]       = useState('');
   const [loadStatus, setLoadStatus]     = useState<'idle' | 'loading' | 'notfound' | 'error' | 'done'>('idle');
+  const [shareNotice, setShareNotice]   = useState('');
   const bracketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setStateRaw(loadState()); }, []);
@@ -146,18 +147,40 @@ export function BracketApp() {
     }
   };
 
-  const share = (net: string) => {
+  const share = async (net: string) => {
     const champName = champion?.name ?? 'my team';
     const text = champion
       ? `My 2026 World Cup champion: ${champName}! 🏆 Build yours #PickTheCup`
       : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
-    const url = typeof window !== 'undefined' ? window.location.href : 'https://pickthecup.app';
+    const url = typeof window !== 'undefined' ? window.location.href : 'https://pick-the-cup.vercel.app';
+
+    // Instagram has no web share-intent URL, so this used to just open
+    // instagram.com with nothing attached. Use the native OS share sheet
+    // when available (works for Stories/DM on mobile); otherwise copy the
+    // link so it can be pasted manually.
+    if (net === 'instagram') {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        try { await navigator.share({ title: 'Pick The Cup', text, url }); } catch {}
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(`${text} ${url}`);
+          setShareNotice('Link copied — paste it into your Instagram post!');
+        } catch {
+          setShareNotice(`Copy this link to share: ${url}`);
+        }
+      }
+      return;
+    }
+
+    setShareNotice('');
     const enc = encodeURIComponent(text);
     let href = '';
-    if (net === 'x')        href = `https://twitter.com/intent/tweet?text=${enc}&url=${encodeURIComponent(url)}`;
-    else if (net === 'threads') href = `https://www.threads.net/intent/post?text=${enc}`;
+    // X's web intent unfurls og:image automatically from the shared URL.
+    if (net === 'x')            href = `https://twitter.com/intent/tweet?text=${enc}&url=${encodeURIComponent(url)}`;
+    // Threads' intent only takes one `text` param, so fold the link in —
+    // it still unfurls the og:image once posted.
+    else if (net === 'threads') href = `https://www.threads.net/intent/post?text=${encodeURIComponent(text + ' ' + url)}`;
     else if (net === 'facebook') href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${enc}`;
-    else if (net === 'instagram') href = 'https://www.instagram.com/';
     try { window.open(href, '_blank', 'noopener'); } catch {}
   };
 
@@ -270,6 +293,7 @@ export function BracketApp() {
           onEmailSubmit={submitEmail}
           onClose={() => setShowChampion(false)}
           onShare={share}
+          shareNotice={shareNotice}
         />
       )}
       {showLoad && (
@@ -306,9 +330,11 @@ function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => 
           <button onClick={onBuild} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:16, color:'#fff', background:'#FF3D8B', border:'3px solid #161616', borderRadius:14, padding:'15px 26px', cursor:'pointer', boxShadow:'4px 4px 0 #161616' }}>
             ⚽ Build my bracket →
           </button>
+          {/* "Surprise me" hidden for now — irrelevant while real results are locked in
           <button onClick={onSurprise} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:16, color:'#161616', background:'#fff', border:'3px solid #161616', borderRadius:14, padding:'15px 24px', cursor:'pointer', boxShadow:'4px 4px 0 #FFC23C' }}>
             🎲 Surprise me
           </button>
+          */}
         </div>
         <div style={{ display:'flex', gap:18, justifyContent:'center', flexWrap:'wrap', marginTop:22, fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#9b978f' }}>
           <span>✓ Free &amp; instant</span><span>✓ No signup to play</span><span>✓ 64 picks to glory</span>
@@ -348,7 +374,9 @@ function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           <button onClick={onLoad} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>📥 Load</button>
           <button onClick={onReset} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Reset</button>
+          {/* "Surprise me" hidden for now — irrelevant while real results are locked in
           <button onClick={onAutofill} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#FF3D8B', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🎲 Surprise me</button>
+          */}
           <button onClick={onShare} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color: canShare ? '#161616' : '#9b978f', background: canShare ? '#FFC23C' : '#efece4', border: `2.5px solid ${canShare ? '#161616' : '#c8c4ba'}`, borderRadius:11, padding:'9px 13px', cursor: canShare ? 'pointer' : 'not-allowed', boxShadow: canShare ? '2px 2px 0 #161616' : 'none' }}>
             {canShare ? '📲 Share' : '🔒 Share'}
           </button>
@@ -689,7 +717,7 @@ function SponsorModal({ done, onClose, company, name, email, onCompany, onName, 
 }
 
 /* ─── Champion Modal ─────────────────────────────────────────── */
-function ChampionModal({ res, champion, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare }: {
+function ChampionModal({ res, champion, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, shareNotice }: {
   res: Record<string, MatchResult>;
   champion: { name: string; flag: string } | null;
   emailDone: boolean; emailSaving: boolean; emailError: string; email: string;
@@ -697,6 +725,7 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
   onEmailSubmit: () => void;
   onClose: () => void;
   onShare: (net: string) => void;
+  shareNotice: string;
 }) {
   const rSemiL = res['M101'];
   const rSemiR = res['M102'];
@@ -824,6 +853,7 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
           <button onClick={() => onShare('threads')}   style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>@</button>
           <button onClick={() => onShare('facebook')}  style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#2D6BFF', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>f</button>
         </div>
+        {shareNotice && <div style={{ textAlign:'center', fontSize:11.5, fontWeight:700, color:'#0E9E68', marginBottom:14 }}>{shareNotice}</div>}
 
         {/* Email capture */}
         <div style={{ borderTop:'2px dashed #d9d5cc', paddingTop:14 }}>

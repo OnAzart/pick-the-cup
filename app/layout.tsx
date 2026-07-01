@@ -19,8 +19,19 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://pick-the-cup.vercel.app"),
   title: "Pick The Cup — World Cup 2026 Prediction Bracket",
   description: "Predict the entire FIFA World Cup 2026 knockout stage. Crown your champion, then dare your friends to beat your bracket.",
+  openGraph: {
+    title: "Pick The Cup — World Cup 2026 Prediction Bracket",
+    description: "Predict the entire FIFA World Cup 2026 knockout stage. Crown your champion, then dare your friends to beat your bracket.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pick The Cup — World Cup 2026 Prediction Bracket",
+    description: "Predict the entire FIFA World Cup 2026 knockout stage. Crown your champion, then dare your friends to beat your bracket.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
