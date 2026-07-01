@@ -484,7 +484,7 @@ function BracketColumn({ title, matchIds, res, slots, used, lockedSlots, lockedP
           } else {
             conns.push({ position:'absolute', top:'50%', left:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
             if (colIdx < colCount - 1) conns.push({ position:'absolute', top:'50%', right:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
-            if (p > 0 && p % 2 === 0) conns.push({ position:'absolute', top:'50%', left:-7, width:2, height:'100%', background:BK });
+            if (p < matchIds.length - 1 && p % 2 === 0) conns.push({ position:'absolute', top:'50%', left:-7, width:2, height:'100%', background:BK });
           }
           return (
             <div key={id} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
