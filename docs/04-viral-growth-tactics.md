@@ -34,6 +34,23 @@ Critically: cold organic virality essentially never happens without a seed audie
 5. Run Spark Ads behind whichever seeded post gets organic traction in the first 48 hours — don't wait for perfect data.
 6. Keep every title/thumbnail truthful to content to avoid throttling mid-tournament, when reach matters most.
 
+## 5. Reaching a US audience specifically
+
+The World Cup is hosted in the US/Canada/Mexico, and the US audience carries the highest ad CPMs and likely the most engaged host-nation attention — worth deliberately targeting, not just hoping for.
+
+**Organic signals (2026 update):** TikTok's geo-authentication has tightened, so authentic US-based activity now matters more than VPN/SIM tricks. Concrete levers: post during US timezones, use American spelling and units in captions (small trust signal to viewers and the algorithm — "color" not "colour", Fahrenheit not Celsius), hook viewers in the first 1–2 seconds since US scroll speed runs ~13% faster than the global average, and note the 2026 format shift toward 60+ second retention-driven content over ultra-short high-energy clips.
+
+**Paid geo-targeting:** TikTok/YouTube ads support targeting down to country, state, city, or ZIP. Apply US-only targeting to the Spark Ads boost step in the Week 1 checklist above — cheap, direct way to force US delivery once an organic post is showing traction.
+
+**Collaborating with short-form creators/editors — concrete options, cheapest first:**
+
+- **Fiverr** — cheapest entry point, has a sports-niche UGC filter specifically, $50–150/video for a single creator gig. Best starting point given no ad budget yet.
+- **Trend.io** — credit-based; post a brief, get matched with a US creator same-day.
+- **Backstage / SideShift** — larger marketplaces (50k–500k+ US-based creators), 24–72hr turnaround, but subscription-gated ($199+/mo) — worth it once sponsor-slot revenue exists, not before.
+- **TikTok Creator Marketplace** — platform-native brand↔creator matching; sometimes gets more favorable algorithmic treatment since it's TikTok's own system.
+
+Start with 3–5 one-off Fiverr sports-UGC briefs this week; graduate to a subscription marketplace only once there's real revenue to justify the recurring cost.
+
 ## Sources
 
 - [Strike Social — March Madness Influencer Marketing](https://strikesocial.com/blog/2026-march-madness-influencer-marketing/)
@@ -43,3 +60,8 @@ Critically: cold organic virality essentially never happens without a seed audie
 - [YouTube Thumbnails Policy](https://support.google.com/youtube/answer/9229980?hl=en)
 - [Aakash G — Wordle Is the Anti-Growth Hack](https://www.aakashg.com/wordle/)
 - [QuickReel — FIFA World Cup 2026 TikTok Trends](https://quickreel.io/blog/fifa-world-cup-2026-tiktok-trends-viral-football-edits-ai)
+- [Snaplama — How to Target US Audience on TikTok in 2026](https://www.snaplama.com/blog/how-to-target-us-audience-on-tiktok-in-2026-complete-strategic-guide)
+- [TikTok Ads Manager — Location Targeting](https://ads.tiktok.com/help/article/location-targeting?lang=en)
+- [SideShift — UGC Creator Platform](https://sideshift.app/blog/ugc-creator-platforms)
+- [Backstage — Hire UGC Creators and Influencers](https://www.backstage.com/hire-ugc-creators-and-influencers/)
+- [Fiverr — UGC Video Services](https://www.fiverr.com/categories/video-animation/ugc-videos)
