@@ -31,23 +31,26 @@ export const GROUPS: Record<string, string[]> = {
 export interface KOSlot { r: string; p: string; }
 export interface KOMatch { id: string; a: KOSlot; b: KOSlot; }
 
+// Round-of-32 leaves match the real, FIFA-published 2026 draw (verified
+// against football-data.org's synced fixtures — see app/api/locked). The
+// win:/lose: cascade below (M89 onward) was already correct.
 export const KO: KOMatch[] = [
-  {id:'M74',a:{r:'g:A:1',p:'1A'},b:{r:'w:0',p:'3ABCDF'}},
-  {id:'M77',a:{r:'g:B:1',p:'1B'},b:{r:'w:1',p:'3CDFGH'}},
-  {id:'M73',a:{r:'g:A:2',p:'2A'},b:{r:'g:C:2',p:'2C'}},
-  {id:'M75',a:{r:'g:C:1',p:'1C'},b:{r:'g:D:2',p:'2D'}},
-  {id:'M83',a:{r:'g:D:1',p:'1D'},b:{r:'g:E:2',p:'2E'}},
-  {id:'M84',a:{r:'g:E:1',p:'1E'},b:{r:'g:F:2',p:'2F'}},
-  {id:'M81',a:{r:'g:F:1',p:'1F'},b:{r:'w:2',p:'3BEFIJ'}},
-  {id:'M82',a:{r:'g:G:1',p:'1G'},b:{r:'w:3',p:'3AEHIJ'}},
-  {id:'M76',a:{r:'g:H:1',p:'1H'},b:{r:'g:G:2',p:'2G'}},
-  {id:'M78',a:{r:'g:I:1',p:'1I'},b:{r:'g:H:2',p:'2H'}},
-  {id:'M79',a:{r:'g:J:1',p:'1J'},b:{r:'w:4',p:'3CEFHI'}},
-  {id:'M80',a:{r:'g:K:1',p:'1K'},b:{r:'w:5',p:'3EHIJK'}},
-  {id:'M86',a:{r:'g:L:1',p:'1L'},b:{r:'g:I:2',p:'2I'}},
-  {id:'M88',a:{r:'g:B:2',p:'2B'},b:{r:'g:J:2',p:'2J'}},
-  {id:'M85',a:{r:'g:K:2',p:'2K'},b:{r:'w:6',p:'3EFGIJ'}},
-  {id:'M87',a:{r:'g:L:2',p:'2L'},b:{r:'w:7',p:'3DEIJL'}},
+  {id:'M74',a:{r:'g:E:1',p:'1E'},b:{r:'w:0',p:'3ABCDF'}},
+  {id:'M77',a:{r:'g:I:1',p:'1I'},b:{r:'w:1',p:'3CDFGH'}},
+  {id:'M73',a:{r:'g:B:2',p:'2B'},b:{r:'g:A:2',p:'2A'}},
+  {id:'M75',a:{r:'g:F:1',p:'1F'},b:{r:'g:C:2',p:'2C'}},
+  {id:'M83',a:{r:'g:K:2',p:'2K'},b:{r:'g:L:2',p:'2L'}},
+  {id:'M84',a:{r:'g:H:1',p:'1H'},b:{r:'g:J:2',p:'2J'}},
+  {id:'M81',a:{r:'g:D:1',p:'1D'},b:{r:'w:4',p:'3BEFIJ'}},
+  {id:'M82',a:{r:'g:G:1',p:'1G'},b:{r:'w:5',p:'3AEHIJ'}},
+  {id:'M76',a:{r:'g:C:1',p:'1C'},b:{r:'g:F:2',p:'2F'}},
+  {id:'M78',a:{r:'g:E:2',p:'2E'},b:{r:'g:I:2',p:'2I'}},
+  {id:'M79',a:{r:'g:A:1',p:'1A'},b:{r:'w:2',p:'3CEFHI'}},
+  {id:'M80',a:{r:'g:L:1',p:'1L'},b:{r:'w:3',p:'3EHIJK'}},
+  {id:'M86',a:{r:'g:J:1',p:'1J'},b:{r:'g:H:2',p:'2H'}},
+  {id:'M88',a:{r:'g:D:2',p:'2D'},b:{r:'g:G:2',p:'2G'}},
+  {id:'M85',a:{r:'g:B:1',p:'1B'},b:{r:'w:6',p:'3EFGIJ'}},
+  {id:'M87',a:{r:'g:K:1',p:'1K'},b:{r:'w:7',p:'3DEIJL'}},
   {id:'M89',a:{r:'win:M74',p:'W74'},b:{r:'win:M77',p:'W77'}},
   {id:'M90',a:{r:'win:M73',p:'W73'},b:{r:'win:M75',p:'W75'}},
   {id:'M93',a:{r:'win:M83',p:'W83'},b:{r:'win:M84',p:'W84'}},
