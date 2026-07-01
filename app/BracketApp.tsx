@@ -286,8 +286,8 @@ export function BracketApp() {
       <InstructionBand />
 
       {/* BRACKET */}
-      <div ref={bracketRef} id="bracket" style={{ overflowX: 'auto', padding: '16px 20px 44px' }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', minWidth: 1660, height: 880, margin: '0 auto', width: 'max-content' }}>
+      <div ref={bracketRef} id="bracket" style={{ overflowX: 'auto', padding: '16px 20px 44px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', minWidth: 1660, height: 880, flex: 'none', width: 'max-content' }}>
           {/* Left side */}
           {LEFT_COLS.map((col, ci) => (
             <BracketColumn
