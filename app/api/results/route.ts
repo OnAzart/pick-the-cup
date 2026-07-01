@@ -4,6 +4,11 @@ import { ensureSchema } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+// Underlying data only changes once/day via the sync cron, so let Vercel's
+// edge cache serve this for 5 minutes instead of hitting Postgres on every
+// page load (stale-while-revalidate keeps it non-blocking past that).
+const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' };
+
 export async function GET() {
   await ensureSchema();
   const [results, standings, lastSync] = await Promise.all([
@@ -15,5 +20,5 @@ export async function GET() {
     lastSync: lastSync.rows[0] ?? null,
     results: results.rows,
     standings: standings.rows,
-  });
+  }, { headers: CACHE_HEADERS });
 }

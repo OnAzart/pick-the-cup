@@ -56,9 +56,12 @@ export function BracketApp() {
   const [showChampion, setShowChampion] = useState(false);
   const [showSponsor, setShowSponsor]   = useState(false);
   const [sponsorDone, setSponsorDone]   = useState(false);
+  const [sponsorSaving, setSponsorSaving] = useState(false);
+  const [sponsorError, setSponsorError] = useState('');
   const [spCompany, setSpCompany]       = useState('');
   const [spName, setSpName]             = useState('');
   const [spEmail, setSpEmail]           = useState('');
+  const [sponsors, setSponsors]         = useState<Sponsor[]>([]);
   const [emailDone, setEmailDone]       = useState(false);
   const [emailSaving, setEmailSaving]   = useState(false);
   const [emailError, setEmailError]     = useState('');
@@ -73,6 +76,12 @@ export function BracketApp() {
     fetch('/api/locked')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setLocked({ slots: data.slots || {}, picks: data.picks || {} }); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    fetch('/api/sponsors')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.sponsors) setSponsors(data.sponsors); })
       .catch(() => {});
   }, []);
 
@@ -184,8 +193,23 @@ export function BracketApp() {
     try { window.open(href, '_blank', 'noopener'); } catch {}
   };
 
-  const submitSponsor = () => {
-    if (spCompany && spName && spEmail.includes('@')) setSponsorDone(true);
+  const submitSponsor = async () => {
+    if (!spCompany || !spName || !spEmail.includes('@')) return;
+    setSponsorSaving(true);
+    setSponsorError('');
+    try {
+      const r = await fetch('/api/sponsor-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company: spCompany, name: spName, email: spEmail }),
+      });
+      if (!r.ok) throw new Error('inquiry failed');
+      setSponsorDone(true);
+    } catch {
+      setSponsorError('Could not submit — try again.');
+    } finally {
+      setSponsorSaving(false);
+    }
   };
   const submitEmail = async () => {
     if (!email.includes('@')) return;
@@ -273,13 +297,13 @@ export function BracketApp() {
         </div>
       </div>
 
-      <SponsorStrip onOpenSponsor={() => { setShowSponsor(true); setSponsorDone(false); }} />
+      <SponsorStrip sponsors={sponsors} onOpenSponsor={() => { setShowSponsor(true); setSponsorDone(false); }} />
       <Footer />
 
       {/* Modals */}
       {showSponsor && (
         <SponsorModal
-          done={sponsorDone} onClose={() => setShowSponsor(false)}
+          done={sponsorDone} saving={sponsorSaving} error={sponsorError} onClose={() => setShowSponsor(false)}
           company={spCompany} name={spName} email={spEmail}
           onCompany={setSpCompany} onName={setSpName} onEmail={setSpEmail}
           onSubmit={submitSponsor}
@@ -602,16 +626,9 @@ function CenterColumn({ res, used, lockedPicks, onPick }: {
 }
 
 /* ─── Sponsor Strip ──────────────────────────────────────────── */
-const SPONSORS = [
-  { logo:'◇', name:'NIMBUS',  tag:'Official Mobility', bg:'#2D6BFF', lg:'#fff' },
-  { logo:'▲', name:'APEX',    tag:'Energy Partner',    bg:'#FF5A3C', lg:'#fff' },
-  { logo:'★', name:'VOLT',    tag:'Official Drink',    bg:'#FFC23C', lg:'#161616' },
-  { logo:'●', name:'ORBIT',   tag:'Telecom',           bg:'#14B87A', lg:'#fff' },
-  { logo:'✦', name:'LUMA',    tag:'Banking',           bg:'#8134AF', lg:'#fff' },
-  { logo:'◆', name:'PEAK',    tag:'Travel',            bg:'#FF3D8B', lg:'#fff' },
-];
+interface Sponsor { name: string; tag: string; logo: string; bg: string; fg: string; url: string; }
 
-function SponsorStrip({ onOpenSponsor }: { onOpenSponsor: () => void }) {
+function SponsorStrip({ sponsors, onOpenSponsor }: { sponsors: Sponsor[]; onOpenSponsor: () => void }) {
   return (
     <div style={{ background:'#fff', borderTop:'3px solid #161616' }}>
       <div style={{ maxWidth:1320, margin:'0 auto', padding:'34px 20px 38px' }}>
@@ -620,12 +637,12 @@ function SponsorStrip({ onOpenSponsor }: { onOpenSponsor: () => void }) {
           <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginTop:4 }}>Powering Pick The Cup 2026</div>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14 }}>
-          {SPONSORS.map(s => (
-            <div key={s.name} style={{ background:'#FFFDF5', border:'2.5px solid #161616', borderRadius:16, boxShadow:'3px 3px 0 #161616', padding:'16px 12px', display:'flex', flexDirection:'column', alignItems:'center', gap:7 }}>
-              <div style={{ width:44, height:44, borderRadius:11, border:'2px solid #161616', background:s.bg, color:s.lg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontFamily:"var(--font-archivo-black), sans-serif" }}>{s.logo}</div>
-              <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, letterSpacing:'.01em' }}>{s.name}</div>
+          {sponsors.map(s => (
+            <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration:'none', background:'#FFFDF5', border:'2.5px solid #161616', borderRadius:16, boxShadow:'3px 3px 0 #161616', padding:'16px 12px', display:'flex', flexDirection:'column', alignItems:'center', gap:7 }}>
+              <div style={{ width:44, height:44, borderRadius:11, border:'2px solid #161616', background:s.bg, color:s.fg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontFamily:"var(--font-archivo-black), sans-serif" }}>{s.logo}</div>
+              <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, letterSpacing:'.01em', color:'#161616' }}>{s.name}</div>
               <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, color:'#9b978f', textAlign:'center' }}>{s.tag}</div>
-            </div>
+            </a>
           ))}
           <div onClick={onOpenSponsor} style={{ border:'2.5px dashed #c8c4ba', borderRadius:16, padding:'16px 12px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, textAlign:'center', cursor:'pointer' }}>
             <div style={{ fontSize:22 }}>＋</div>
@@ -654,8 +671,8 @@ function Footer() {
 }
 
 /* ─── Sponsor Modal ──────────────────────────────────────────── */
-function SponsorModal({ done, onClose, company, name, email, onCompany, onName, onEmail, onSubmit }: {
-  done: boolean; onClose: () => void;
+function SponsorModal({ done, saving, error, onClose, company, name, email, onCompany, onName, onEmail, onSubmit }: {
+  done: boolean; saving: boolean; error: string; onClose: () => void;
   company: string; name: string; email: string;
   onCompany: (v: string) => void; onName: (v: string) => void; onEmail: (v: string) => void;
   onSubmit: () => void;
@@ -704,9 +721,10 @@ function SponsorModal({ done, onClose, company, name, email, onCompany, onName, 
                 <input value={name} onChange={e => onName(e.target.value)} placeholder="Your name" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
                 <input value={email} onChange={e => onEmail(e.target.value)} placeholder="Work email" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
               </div>
-              <button onClick={onSubmit} disabled={!valid} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, color: valid ? '#fff' : '#9b978f', background: valid ? '#14B87A' : '#efece4', border: `2.5px solid ${valid ? '#161616' : '#c8c4ba'}`, borderRadius:13, padding:13, cursor: valid ? 'pointer' : 'not-allowed', boxShadow: valid ? '3px 3px 0 #161616' : 'none' }}>
-                Reserve my slot → $100
+              <button onClick={onSubmit} disabled={!valid || saving} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, color: valid ? '#fff' : '#9b978f', background: saving ? '#9b978f' : valid ? '#14B87A' : '#efece4', border: `2.5px solid ${valid ? '#161616' : '#c8c4ba'}`, borderRadius:13, padding:13, cursor: (valid && !saving) ? 'pointer' : 'not-allowed', boxShadow: valid ? '3px 3px 0 #161616' : 'none' }}>
+                {saving ? 'Submitting…' : 'Reserve my slot → $100'}
               </button>
+              {error && <div style={{ color:'#D6336C', fontSize:11.5, fontWeight:700, textAlign:'center' }}>{error}</div>}
               <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, color:'#9b978f', textAlign:'center' }}>Mock checkout — no real payment taken.</div>
             </div>
           </div>

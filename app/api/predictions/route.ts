@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { ensureSchema } from '@/lib/db';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,5 +46,12 @@ export async function POST(req: NextRequest) {
       picks = EXCLUDED.picks,
       updated_at = now();
   `;
+
+  await sendEmail({
+    to: email,
+    subject: 'Your Pick The Cup bracket is saved 🏆',
+    html: `<p>Your bracket is saved to this email.</p><p>Come back anytime and use "Load bracket" with this same address to pick up where you left off or fix a pick.</p>`,
+  });
+
   return NextResponse.json({ ok: true });
 }

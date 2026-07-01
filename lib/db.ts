@@ -63,6 +63,41 @@ export function ensureSchema(): Promise<void> {
           updated_at TIMESTAMPTZ DEFAULT now()
         );
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS sponsors (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          tag TEXT,
+          logo TEXT,
+          bg TEXT,
+          fg TEXT,
+          url TEXT,
+          sort_order INT NOT NULL DEFAULT 0,
+          active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMPTZ DEFAULT now()
+        );
+      `;
+      // Seeded once with volunteer/charity funds as placeholder sponsor
+      // content — swap rows in this table for real paid sponsors later,
+      // no code changes needed.
+      await sql`
+        INSERT INTO sponsors (name, tag, logo, bg, fg, url, sort_order) VALUES
+          ('United24', 'Official Ukraine Platform', '🇺🇦', '#0057B7', '#ffffff', 'https://u24.gov.ua', 1),
+          ('UAnimals', 'Animal Rescue & Rights', '🐾', '#FFD500', '#161616', 'https://uanimals.org', 2),
+          ('Come Back Alive', 'Ukrainian Defense Charity', '🛡️', '#0057B7', '#ffffff', 'https://savelife.in.ua', 3),
+          ('UNICEF', 'Children''s Fund', '🌐', '#1CABE2', '#ffffff', 'https://www.unicef.org', 4),
+          ('Red Cross', 'Humanitarian Aid', '➕', '#ED1B2E', '#ffffff', 'https://www.icrc.org', 5)
+        ON CONFLICT (name) DO NOTHING;
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS sponsor_inquiries (
+          id SERIAL PRIMARY KEY,
+          company TEXT NOT NULL,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT now()
+        );
+      `;
     })();
   }
   return schemaReady;

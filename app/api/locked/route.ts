@@ -5,6 +5,11 @@ import { KOby } from '@/app/data';
 
 export const dynamic = 'force-dynamic';
 
+// Underlying data only changes once/day via the sync cron, so let Vercel's
+// edge cache serve this for 5 minutes instead of hitting Postgres on every
+// page load (stale-while-revalidate keeps it non-blocking past that).
+const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' };
+
 // football-data.org's own match IDs for the 16 Round-of-32 fixtures,
 // cross-verified against the official FIFA match numbers (73-88) by
 // matching each fixture's real group-position pairing and — for the
@@ -133,5 +138,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ slots, picks });
+  return NextResponse.json({ slots, picks }, { headers: CACHE_HEADERS });
 }
