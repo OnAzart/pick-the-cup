@@ -8,6 +8,11 @@ export const dynamic = 'force-dynamic';
 // pillarboxed/cropped by platform link-preview frames (iMessage, X, etc.).
 const size = { width: 1200, height: 630 };
 
+const CHIP_WIDTH = 148;
+const CHIP_GAP = 14;
+const PAIR_WIDTH = CHIP_WIDTH * 2 + CHIP_GAP;
+const CARD_CONTENT_WIDTH = 1028; // 1120 card width - 2*46 padding
+
 function team(code: string | null) {
   if (!code) return null;
   const t = TEAMS[code];
@@ -25,7 +30,7 @@ function TeamChip({ code, state }: { code: string | null; state: 'active' | 'out
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        width: 148,
+        width: CHIP_WIDTH,
         height: 54,
         border: '3px solid #161616',
         borderRadius: 14,
@@ -58,7 +63,7 @@ function FinalistChip({ code, isChampion }: { code: string | null; isChampion: b
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        width: 148,
+        width: CHIP_WIDTH,
         height: 54,
         border: '3px solid #161616',
         borderRadius: 14,
@@ -69,14 +74,35 @@ function FinalistChip({ code, isChampion }: { code: string | null; isChampion: b
     >
       <span style={{ fontSize: 22 }}>{t?.flag ?? ''}</span>
       <span style={{ fontSize: 18, fontWeight: 900, color: isChampion ? '#fff' : '#161616' }}>{t?.code ?? ''}</span>
+      {isChampion && <span style={{ display: 'flex', fontSize: 16 }}>✅</span>}
     </div>
   );
 }
 
-function Connector() {
+// Bracket-style "elbow" connector: two stems down from a pair of boxes,
+// merging into a single horizontal bar, then one stem down to the next box.
+// Built with pure flexbox centering (no absolute + percentage transforms —
+// that combination doesn't render reliably under Satori/next-og) — each
+// half of `width` centers its own stem, which lands exactly under the
+// corresponding box because the box row above uses the same halving.
+function Elbow({ width }: { width: number }) {
+  const half = width / 2;
   return (
-    <div style={{ display: 'flex', width: 148, justifyContent: 'center' }}>
-      <div style={{ display: 'flex', width: 3, height: 14, background: '#161616' }} />
+    <div style={{ display: 'flex', flexDirection: 'column', width }}>
+      <div style={{ display: 'flex' }}>
+        <div style={{ display: 'flex', width: half, justifyContent: 'center' }}>
+          <div style={{ display: 'flex', width: 3, height: 9, background: '#161616' }} />
+        </div>
+        <div style={{ display: 'flex', width: half, justifyContent: 'center' }}>
+          <div style={{ display: 'flex', width: 3, height: 9, background: '#161616' }} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', width: half, height: 3, background: '#161616' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', width: 3, height: 9, background: '#161616' }} />
+      </div>
     </div>
   );
 }
@@ -128,35 +154,35 @@ export async function GET(req: NextRequest) {
 
           {hasFullCard ? (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginTop: 32 }}>
+              <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginTop: 26 }}>
                 SEMI-FINALISTS
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 16 }}>
-                <div style={{ display: 'flex', gap: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 14 }}>
+                <div style={{ display: 'flex', gap: CHIP_GAP }}>
                   <TeamChip code={semiLA} state={semiLA === semiLW ? 'active' : 'out'} />
                   <TeamChip code={semiLB} state={semiLB === semiLW ? 'active' : 'out'} />
                 </div>
-                <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ display: 'flex', gap: CHIP_GAP }}>
                   <TeamChip code={semiRA} state={semiRA === semiRW ? 'active' : 'out'} />
                   <TeamChip code={semiRB} state={semiRB === semiRW ? 'active' : 'out'} />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 8 }}>
-                <Connector />
-                <Connector />
+              <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                <Elbow width={PAIR_WIDTH} />
+                <Elbow width={PAIR_WIDTH} />
               </div>
 
-              <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginTop: 6 }}>
+              <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center' }}>
                 FINALISTS
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 14 }}>
                 <FinalistChip code={semiLW} isChampion={semiLW === champCode} />
                 <FinalistChip code={semiRW} isChampion={semiRW === champCode} />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
-                <div style={{ display: 'flex', width: 3, height: 14, background: '#161616' }} />
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <Elbow width={CARD_CONTENT_WIDTH} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
