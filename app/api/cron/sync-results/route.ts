@@ -48,6 +48,14 @@ function unauthorized() {
   return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 }
 
+// football-data.org returns "GROUP_A" on the matches endpoint but "Group A"
+// on the standings endpoint — normalize both to the same form so the two
+// tables can be joined on group_name.
+function normalizeGroupName(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  return raw.trim().toUpperCase().replace(/\s+/g, '_');
+}
+
 export async function GET(req: NextRequest) {
   // Vercel automatically sends `Authorization: Bearer $CRON_SECRET` when
   // this route is invoked by a configured Cron Job, once CRON_SECRET is set.
@@ -90,7 +98,7 @@ export async function GET(req: NextRequest) {
           home_name, away_name, home_score, away_score, status, winner_code, updated_at
         )
         VALUES (
-          ${String(m.id)}, ${m.utcDate}, ${m.stage}, ${m.group ?? null},
+          ${String(m.id)}, ${m.utcDate}, ${m.stage}, ${normalizeGroupName(m.group)},
           ${homeCode}, ${awayCode}, ${m.homeTeam?.name ?? null}, ${m.awayTeam?.name ?? null},
           ${homeScore}, ${awayScore}, ${m.status}, ${winnerCode}, now()
         )
@@ -116,9 +124,13 @@ export async function GET(req: NextRequest) {
 
   if (standingsRes.ok) {
     const data: { standings?: FDStandingGroup[] } = await standingsRes.json();
+    // Standings are always synced as a full snapshot, so clear the table
+    // first — this also drops any rows left over in the pre-normalization
+    // "Group A" format.
+    await sql`DELETE FROM standings;`;
     for (const group of data.standings ?? []) {
       if (group.type !== 'TOTAL') continue;
-      const groupName = group.group ?? null;
+      const groupName = normalizeGroupName(group.group);
       for (const row of group.table ?? []) {
         const teamCode = row.team?.tla ?? null;
         if (!teamCode || !groupName) continue;
