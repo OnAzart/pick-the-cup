@@ -553,13 +553,11 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, lockedSlots, lockedPi
   else if (isLose)       rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
   else if (resolved)     rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
   else                   rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
-  if (isLocked) rowStyle = { ...rowStyle, boxShadow: 'inset 0 0 0 2px #2D6BFF' };
 
   return (
     <div onClick={clickable ? () => onPick(matchId, code!) : undefined} style={rowStyle} title={isLocked ? 'Actual result' : undefined}>
       <span style={{ fontSize: isFinal ? 22 : 15, flex:'none', width: isFinal ? 'auto' : 17 }}>{flag}</span>
       <span style={{ flex:1, fontSize: isFinal ? 15 : 12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{txt}</span>
-      {isLocked && <span style={{ flex:'none', fontSize:10 }}>🔒</span>}
       {isWin && <span style={{ flex:'none', fontSize:12, fontWeight:900 }}>✓</span>}
       {editable && (
         <button
@@ -596,12 +594,10 @@ function CenterColumn({ res, used, lockedPicks, onPick }: {
     else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
     else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
     else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
-    if (finalLocked) rowStyle = { ...rowStyle, boxShadow: 'inset 0 0 0 2px #2D6BFF' };
     return (
-      <div onClick={clickable ? () => onPick('M104', code!) : undefined} style={rowStyle}>
+      <div onClick={clickable ? () => onPick('M104', code!) : undefined} style={rowStyle} title={finalLocked ? 'Actual result' : undefined}>
         <span style={{ fontSize:22, flex:'none' }}>{t?.flag ?? ''}</span>
         <span style={{ flex:1, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? finalM[side].p}</span>
-        {finalLocked && <span style={{ flex:'none', fontSize:11 }}>🔒</span>}
         {isWin && <span style={{ flex:'none', fontSize:15, fontWeight:900 }}>✓</span>}
       </div>
     );
@@ -619,12 +615,10 @@ function CenterColumn({ res, used, lockedPicks, onPick }: {
     else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
     else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
     else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
-    if (thirdLocked) rowStyle = { ...rowStyle, boxShadow: 'inset 0 0 0 2px #2D6BFF' };
     return (
-      <div onClick={clickable ? () => onPick('M103', code!) : undefined} style={rowStyle}>
+      <div onClick={clickable ? () => onPick('M103', code!) : undefined} style={rowStyle} title={thirdLocked ? 'Actual result' : undefined}>
         <span style={{ fontSize:15, flex:'none', width:17 }}>{t?.flag ?? ''}</span>
         <span style={{ flex:1, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? (side === 'a' ? thirdM.a.p : thirdM.b.p)}</span>
-        {thirdLocked && <span style={{ flex:'none', fontSize:10 }}>🔒</span>}
         {isWin && <span style={{ flex:'none', fontSize:11, fontWeight:900 }}>✓</span>}
       </div>
     );
