@@ -1,11 +1,21 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { toPng } from 'html-to-image';
 import {
   TEAMS, KO, KOby, LEFT_COLS, RIGHT_COLS,
   computeKO, prune, fillRandom, isLeaf, poolFor, slotLabel,
   type MatchResult,
 } from './data';
+
+/* ─── Save-image export (self-contained, safe to remove) ──────── */
+type ExportScope = 'all' | 'r16' | 'qf' | 'final';
+const EXPORT_SCOPE_EXCLUDES: Record<ExportScope, string[]> = {
+  all: [],
+  r16: ['ROUND OF 32'],
+  qf: ['ROUND OF 32', 'ROUND OF 16'],
+  final: ['ROUND OF 32', 'ROUND OF 16', 'QUARTER', 'SEMI'],
+};
 
 /* ─── State ─────────────────────────────────────────────────── */
 interface BracketState {
@@ -69,7 +79,11 @@ export function BracketApp() {
   const [loadEmail, setLoadEmail]       = useState('');
   const [loadStatus, setLoadStatus]     = useState<'idle' | 'loading' | 'notfound' | 'error' | 'done'>('idle');
   const [shareNotice, setShareNotice]   = useState('');
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [savingImage, setSavingImage]   = useState(false);
+  const [exportScope, setExportScope]   = useState<ExportScope>('all');
   const bracketRef = useRef<HTMLDivElement>(null);
+  const bracketContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setStateRaw(loadState()); }, []);
   useEffect(() => {
@@ -273,6 +287,35 @@ export function BracketApp() {
     }
   };
 
+  // Save-image export: temporarily narrows which columns render (via
+  // exportScope), waits a couple of frames for the DOM to repaint, screenshots
+  // the bracket content node, then restores the full view. Self-contained —
+  // safe to delete this function + its state/UI wiring without touching
+  // anything else.
+  const doSaveImage = async (scope: ExportScope) => {
+    setShowSaveMenu(false);
+    setSavingImage(true);
+    setExportScope(scope);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try {
+      const node = bracketContentRef.current;
+      if (node) {
+        const dataUrl = await toPng(node, { backgroundColor: '#FFFDF5', pixelRatio: 2 });
+        const link = document.createElement('a');
+        link.download = `pick-the-cup-bracket-${scope}.png`;
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch {
+      // best-effort export; no dedicated error UI for this nice-to-have
+    } finally {
+      setExportScope('all');
+      setSavingImage(false);
+    }
+  };
+  const visibleLeftCols = LEFT_COLS.filter(c => !EXPORT_SCOPE_EXCLUDES[exportScope].includes(c.title));
+  const visibleRightCols = RIGHT_COLS.filter(c => !EXPORT_SCOPE_EXCLUDES[exportScope].includes(c.title));
+
   return (
     <div style={{ minHeight: '100vh', background: '#FFFDF5', fontFamily: "var(--font-archivo), sans-serif", color: '#161616' }}>
       <Hero onBuild={scrollToBracket} onSurprise={doAutofill} />
@@ -282,21 +325,22 @@ export function BracketApp() {
         onReset={doReset} onAutofill={doAutofill}
         onShare={() => canShare && setShowChampion(true)}
         onLoad={() => { setShowLoad(true); setLoadStatus('idle'); }}
+        onSaveImage={() => setShowSaveMenu(true)}
       />
       <InstructionBand />
 
       {/* BRACKET */}
       <div ref={bracketRef} id="bracket" style={{ overflowX: 'auto', padding: '16px 20px 44px', display: 'flex', justifyContent: 'safe center' }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', minWidth: 1660, height: 880, flex: 'none', width: 'max-content' }}>
+        <div ref={bracketContentRef} style={{ display: 'flex', gap: 8, alignItems: 'stretch', minWidth: exportScope === 'all' ? 1660 : undefined, height: exportScope === 'all' ? 880 : undefined, flex: 'none', width: 'max-content' }}>
           {/* Left side */}
-          {LEFT_COLS.map((col, ci) => (
+          {visibleLeftCols.map((col, ci) => (
             <BracketColumn
               key={col.title + ci}
               title={col.title}
               matchIds={col.matches}
               res={res} slots={effSlots} used={used}
               lockedSlots={locked.slots} lockedPicks={locked.picks}
-              side="left" colIdx={ci} colCount={LEFT_COLS.length}
+              side="left" colIdx={ci} colCount={visibleLeftCols.length}
               isFinal={false}
               onPick={pick} onSelect={selectSlot} onClear={clearSlot}
             />
@@ -310,14 +354,14 @@ export function BracketApp() {
           />
 
           {/* Right side */}
-          {RIGHT_COLS.map((col, ci) => (
+          {visibleRightCols.map((col, ci) => (
             <BracketColumn
               key={col.title + ci}
               title={col.title}
               matchIds={col.matches}
               res={res} slots={effSlots} used={used}
               lockedSlots={locked.slots} lockedPicks={locked.picks}
-              side="right" colIdx={ci} colCount={RIGHT_COLS.length}
+              side="right" colIdx={ci} colCount={visibleRightCols.length}
               isFinal={false}
               onPick={pick} onSelect={selectSlot} onClear={clearSlot}
             />
@@ -354,6 +398,13 @@ export function BracketApp() {
           onEmailChange={setLoadEmail}
           onLoad={doLoad}
           onClose={() => setShowLoad(false)}
+        />
+      )}
+      {showSaveMenu && (
+        <SaveImageModal
+          saving={savingImage}
+          onSave={doSaveImage}
+          onClose={() => setShowSaveMenu(false)}
         />
       )}
     </div>
@@ -397,9 +448,9 @@ function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => 
 }
 
 /* ─── Sticky Header ──────────────────────────────────────────── */
-function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare, onLoad }: {
+function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare, onLoad, onSaveImage }: {
   pct: number; made: number; total: number; canShare: boolean;
-  onReset: () => void; onAutofill: () => void; onShare: () => void; onLoad: () => void;
+  onReset: () => void; onAutofill: () => void; onShare: () => void; onLoad: () => void; onSaveImage: () => void;
 }) {
   return (
     <div style={{ position:'sticky', top:0, zIndex:30, background:'#2D6BFF', borderBottom:'3px solid #161616', overflow:'hidden' }}>
@@ -425,6 +476,7 @@ function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           <button onClick={onLoad} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>📥 Load</button>
+          <button onClick={onSaveImage} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>💾 Save</button>
           <button onClick={onReset} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Reset</button>
           {/* "Surprise me" hidden for now — irrelevant while real results are locked in
           <button onClick={onAutofill} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#FF3D8B', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🎲 Surprise me</button>
@@ -935,6 +987,45 @@ function LoadModal({ loadEmail, status, onEmailChange, onLoad, onClose }: {
           {status === 'notfound' && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:8, fontWeight:700 }}>No saved bracket for that email.</div>}
           {status === 'error'    && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:8, fontWeight:700 }}>Could not load — try again.</div>}
           {status === 'done'     && <div style={{ color:'#0E9E68', fontSize:11.5, marginTop:8, fontWeight:700 }}>✓ Loaded!</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Save Image Modal ───────────────────────────────────────── */
+function SaveImageModal({ saving, onSave, onClose }: {
+  saving: boolean;
+  onSave: (scope: ExportScope) => void;
+  onClose: () => void;
+}) {
+  const options: { scope: ExportScope; label: string; desc: string }[] = [
+    { scope: 'all',   label: '🏆 Full bracket',      desc: 'Round of 32 through the Final' },
+    { scope: 'r16',   label: '🥈 Since Round of 16',  desc: 'Round of 16 through the Final' },
+    { scope: 'qf',    label: '🥉 Since Quarterfinals', desc: 'Quarterfinals through the Final' },
+    { scope: 'final', label: '🎖️ Final only',        desc: 'Just the championship match' },
+  ];
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+        <button onClick={onClose} disabled={saving} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor: saving ? 'not-allowed' : 'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
+        <div style={{ padding:'26px 22px 22px' }}>
+          <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginBottom:6 }}>💾 Save bracket image</div>
+          <p style={{ fontSize:13.5, color:'#56524b', lineHeight:1.5, margin:'0 0 16px' }}>Downloads a PNG — no posting, just a file you can send anyone.</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
+            {options.map(o => (
+              <button
+                key={o.scope}
+                onClick={() => onSave(o.scope)}
+                disabled={saving}
+                style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:2, textAlign:'left', fontFamily:"var(--font-archivo), sans-serif", background:'#fff', border:'2.5px solid #161616', borderRadius:12, padding:'11px 14px', cursor: saving ? 'not-allowed' : 'pointer', boxShadow:'2px 2px 0 #161616', opacity: saving ? .6 : 1 }}
+              >
+                <span style={{ fontWeight:800, fontSize:14 }}>{o.label}</span>
+                <span style={{ fontSize:11, color:'#9b978f' }}>{o.desc}</span>
+              </button>
+            ))}
+          </div>
+          {saving && <div style={{ color:'#2D6BFF', fontSize:11.5, marginTop:12, fontWeight:700, textAlign:'center' }}>Generating image…</div>}
         </div>
       </div>
     </div>
