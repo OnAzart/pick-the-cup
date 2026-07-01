@@ -161,16 +161,30 @@ export function BracketApp() {
     const text = champion
       ? `My 2026 World Cup champion: ${champName}! 🏆 Build yours #PickTheCup`
       : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
-    const url = typeof window !== 'undefined' ? window.location.href : 'https://pick-the-cup.vercel.app';
+    const baseUrl = typeof window !== 'undefined' ? window.location.href.split('#')[0].split('?')[0] : 'https://pick-the-cup.vercel.app';
+    // Cache-bust the shared URL so X/Facebook/Threads' link-preview
+    // crawlers always do a fresh og:image scrape, instead of possibly
+    // reusing a stale cached preview from before the OG image existed.
+    const url = `${baseUrl}?share=${Date.now().toString(36)}`;
 
     // Instagram has no web share-intent URL, so this used to just open
-    // instagram.com with nothing attached. Use the native OS share sheet
-    // when available (works for Stories/DM on mobile); otherwise copy the
-    // link so it can be pasted manually.
+    // instagram.com with nothing attached. Attach the real og:image via
+    // the native OS share sheet when file-sharing is supported (mobile);
+    // fall back to a link-only share, then to copying the link.
     if (net === 'instagram') {
       if (typeof navigator !== 'undefined' && navigator.share) {
-        try { await navigator.share({ title: 'Pick The Cup', text, url }); } catch {}
-      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        try {
+          const imgRes = await fetch('/opengraph-image');
+          const blob = await imgRes.blob();
+          const file = new File([blob], 'pick-the-cup.png', { type: blob.type || 'image/png' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ title: 'Pick The Cup', text, files: [file] });
+            return;
+          }
+        } catch { /* fall through to link-only share */ }
+        try { await navigator.share({ title: 'Pick The Cup', text, url }); return; } catch { /* fall through to clipboard */ }
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
         try {
           await navigator.clipboard.writeText(`${text} ${url}`);
           setShareNotice('Link copied — paste it into your Instagram post!');
