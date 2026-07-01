@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#FFFDF5}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:#161616;border-radius:999px}
+  ::-webkit-scrollbar-track{background:#e9e6dd}
+  @keyframes wcpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+  @keyframes wcfloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(10deg)}}
+  @keyframes conffall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(112vh) rotate(720deg)}}
+  select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23161616'/></svg>");background-repeat:no-repeat;background-position:right 7px center}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#FFFDF5;font-family:'Archivo',sans-serif;color:#161616">
+
+  <!-- ============ HERO ============ -->
+  <div style="position:relative;overflow:hidden;background:#FFFDF5;border-bottom:3px solid #161616">
+    <div style="position:absolute;top:42px;left:14%;width:13px;height:13px;border-radius:3px;background:#FFC23C;border:2px solid #161616;animation:wcfloat 3.4s ease-in-out infinite"></div>
+    <div style="position:absolute;top:90px;left:23%;width:11px;height:11px;border-radius:50%;background:#FF3D8B;animation:wcfloat 3s ease-in-out infinite .5s"></div>
+    <div style="position:absolute;top:60px;right:16%;width:15px;height:9px;border-radius:2px;background:#14B87A;border:2px solid #161616;animation:wcfloat 3.7s ease-in-out infinite .3s"></div>
+    <div style="position:absolute;top:120px;right:24%;width:10px;height:10px;border-radius:50%;background:#2D6BFF;animation:wcfloat 3.2s ease-in-out infinite .8s"></div>
+    <div style="max-width:920px;margin:0 auto;padding:42px 20px 46px;text-align:center;position:relative">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#161616;color:#fff;border-radius:999px;padding:7px 15px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em">
+        <span style="font-size:14px">🏆</span> FIFA WORLD CUP 2026 · 48 NATIONS
+      </div>
+      <h1 style="font-family:'Archivo Black',sans-serif;font-size:clamp(36px,6.4vw,64px);line-height:.96;margin:18px 0 0;letter-spacing:-.015em">Predict the entire<br>World Cup.</h1>
+      <p style="max-width:540px;margin:18px auto 0;font-size:16.5px;line-height:1.55;color:#56524b">Call every knockout match from the Round of 32 to the final whistle. Crown your champion, then dare your friends to beat your bracket.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px">
+        <button onClick="{{ scrollToBracket }}" style="font-family:'Archivo Black',sans-serif;font-size:16px;color:#fff;background:#FF3D8B;border:3px solid #161616;border-radius:14px;padding:15px 26px;cursor:pointer;box-shadow:4px 4px 0 #161616">⚽ Build my bracket →</button>
+        <button onClick="{{ doAutofill }}" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:16px;color:#161616;background:#fff;border:3px solid #161616;border-radius:14px;padding:15px 24px;cursor:pointer;box-shadow:4px 4px 0 #FFC23C">🎲 Surprise me</button>
+      </div>
+      <div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:22px;font-family:'Space Mono',monospace;font-size:12px;color:#9b978f">
+        <span>✓ Free &amp; instant</span><span>✓ No signup to play</span><span>✓ 64 picks to glory</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HEADER ============ -->
+  <div style="position:sticky;top:0;z-index:30;background:#2D6BFF;border-bottom:3px solid #161616;overflow:hidden">
+    <div style="position:absolute;top:8px;left:38%;width:9px;height:9px;border-radius:2px;background:#FFC23C;animation:wcfloat 3s ease-in-out infinite"></div>
+    <div style="position:absolute;top:26px;left:55%;width:7px;height:7px;border-radius:50%;background:#FF3D8B;animation:wcfloat 3.5s ease-in-out infinite .4s"></div>
+    <div style="position:absolute;top:14px;left:72%;width:11px;height:6px;border-radius:2px;background:#14B87A;animation:wcfloat 3.2s ease-in-out infinite .7s"></div>
+    <div style="max-width:1320px;margin:0 auto;padding:13px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;position:relative">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:38px;height:38px;border-radius:11px;background:#FFC23C;border:2.5px solid #161616;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:2px 2px 0 #161616">🏆</div>
+        <div>
+          <div style="font-family:'Archivo Black',sans-serif;color:#fff;font-size:19px;line-height:.95;letter-spacing:-.01em">PICK THE CUP</div>
+          <div style="font-family:'Space Mono',monospace;color:#cfe0ff;font-size:10px;letter-spacing:.08em;margin-top:2px">WORLD CUP 2026 · KNOCKOUT BRACKET</div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:180px">
+        <div style="background:rgba(255,255,255,.2);border:2px solid #161616;border-radius:999px;height:15px;overflow:hidden">
+          <div style="{{ barStyle }}"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-family:'Space Mono',monospace;font-size:10.5px;color:#dce7ff">
+          <span>YOUR BRACKET</span><span style="color:#fff;font-weight:700">{{ progressText }}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onClick="{{ doReset }}" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:12px;color:#161616;background:#fff;border:2.5px solid #161616;border-radius:11px;padding:9px 13px;cursor:pointer;box-shadow:2px 2px 0 #161616">Reset</button>
+        <button onClick="{{ doAutofill }}" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:12px;color:#161616;background:#FF3D8B;border:2.5px solid #161616;border-radius:11px;padding:9px 13px;cursor:pointer;box-shadow:2px 2px 0 #161616">🎲 Surprise me</button>
+        <button onClick="{{ shareClick }}" style="{{ shareBtnStyle }}">{{ shareLabel }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- instruction band -->
+  <div style="background:#fff;border-bottom:3px solid #161616">
+    <div style="max-width:1320px;margin:0 auto;padding:14px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:18px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#2D6BFF;color:#fff;font-family:'Archivo Black',sans-serif;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid #161616">1</div>
+        <div style="font-size:13.5px;color:#56524b;line-height:1.4"><b style="color:#161616">Fill the Round of 32</b> — pick who comes out of each group from the dropdowns.</div>
+      </div>
+      <div style="width:1px;height:26px;background:#e0ddd3"></div>
+      <div style="display:flex;align-items:center;gap:9px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#14B87A;color:#fff;font-family:'Archivo Black',sans-serif;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid #161616">2</div>
+        <div style="font-size:13.5px;color:#56524b;line-height:1.4"><b style="color:#161616">Tap a team</b> to send them through. Winner advances, loser drops out — all the way to the Final. 👉</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BRACKET ============ -->
+  <div id="bracket" style="overflow-x:auto;padding:16px 20px 44px">
+    <div style="display:flex;gap:8px;align-items:stretch;min-width:1660px;height:880px;margin:0 auto;width:max-content">
+
+      <!-- LEFT SIDE -->
+      <sc-for list="{{ left }}" as="col" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;flex:none;width:156px">
+          <div style="font-family:'Space Mono',monospace;font-size:10px;color:#9b978f;text-align:center;letter-spacing:.06em;margin-bottom:4px;height:14px">{{ col.title }}</div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <sc-for list="{{ col.matches }}" as="m" hint-placeholder-count="8">
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative">
+                <sc-for list="{{ m.conns }}" as="cn" hint-placeholder-count="0"><div style="{{ cn }}"></div></sc-for>
+                <div style="width:148px">
+                  <div style="font-family:'Space Mono',monospace;font-size:8.5px;color:#c3bfb5;padding-left:3px;margin-bottom:2px">{{ m.label }}</div>
+                  <div style="border:2.5px solid #161616;border-radius:12px;background:#fff;box-shadow:3px 3px 0 #161616;overflow:hidden">
+                    <sc-if value="{{ m.a.isSelect }}" hint-placeholder-val="{{ false }}">
+                      <select value="{{ m.a.value }}" onChange="{{ m.a.onChange }}" style="{{ m.a.selStyle }}">
+                        <option value="">{{ m.a.placeholder }}</option>
+                        <sc-for list="{{ m.a.options }}" as="o" hint-placeholder-count="0"><option value="{{ o.code }}">{{ o.label }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                    <sc-if value="{{ m.a.isTeam }}" hint-placeholder-val="{{ true }}">
+                      <div onClick="{{ m.a.onClick }}" style="{{ m.a.rowStyle }}">
+                        <span style="{{ m.a.flagStyle }}">{{ m.a.flag }}</span>
+                        <span style="{{ m.a.txtStyle }}">{{ m.a.txt }}</span>
+                        <span style="flex:none;font-size:12px;font-weight:900">{{ m.a.badge }}</span>
+                        <sc-if value="{{ m.a.editable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.a.onEdit }}" style="flex:none;width:17px;height:17px;border:1.5px solid #161616;border-radius:5px;background:#fff;cursor:pointer;font-size:8px;padding:0">✎</button></sc-if>
+                      </div>
+                    </sc-if>
+                    <div style="height:2px;background:#161616"></div>
+                    <sc-if value="{{ m.b.isSelect }}" hint-placeholder-val="{{ false }}">
+                      <select value="{{ m.b.value }}" onChange="{{ m.b.onChange }}" style="{{ m.b.selStyle }}">
+                        <option value="">{{ m.b.placeholder }}</option>
+                        <sc-for list="{{ m.b.options }}" as="o" hint-placeholder-count="0"><option value="{{ o.code }}">{{ o.label }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                    <sc-if value="{{ m.b.isTeam }}" hint-placeholder-val="{{ true }}">
+                      <div onClick="{{ m.b.onClick }}" style="{{ m.b.rowStyle }}">
+                        <span style="{{ m.b.flagStyle }}">{{ m.b.flag }}</span>
+                        <span style="{{ m.b.txtStyle }}">{{ m.b.txt }}</span>
+                        <span style="flex:none;font-size:12px;font-weight:900">{{ m.b.badge }}</span>
+                        <sc-if value="{{ m.b.editable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.b.onEdit }}" style="flex:none;width:17px;height:17px;border:1.5px solid #161616;border-radius:5px;background:#fff;cursor:pointer;font-size:8px;padding:0">✎</button></sc-if>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+
+      <!-- CENTER: FINAL + 3RD -->
+      <div style="display:flex;flex-direction:column;flex:none;width:236px;justify-content:center;gap:18px;padding:0 6px">
+        <div style="text-align:center">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#FF3D8B;letter-spacing:.08em">🏆 THE FINAL</div>
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:#9b978f;margin-top:2px">{{ finalMatch.label }} · 07/19/2026</div>
+        </div>
+        <div style="border:3px solid #161616;border-radius:16px;background:linear-gradient(160deg,#FFF6E2,#fff);box-shadow:5px 5px 0 #161616;overflow:hidden">
+          <sc-if value="{{ finalMatch.a.isTeam }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ finalMatch.a.onClick }}" style="{{ finalMatch.a.rowStyle }}">
+              <span style="{{ finalMatch.a.flagStyle }}">{{ finalMatch.a.flag }}</span>
+              <span style="{{ finalMatch.a.txtStyle }}">{{ finalMatch.a.txt }}</span>
+              <span style="flex:none;font-size:15px;font-weight:900">{{ finalMatch.a.badge }}</span>
+            </div>
+          </sc-if>
+          <div style="height:2.5px;background:#161616"></div>
+          <sc-if value="{{ finalMatch.b.isTeam }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ finalMatch.b.onClick }}" style="{{ finalMatch.b.rowStyle }}">
+              <span style="{{ finalMatch.b.flagStyle }}">{{ finalMatch.b.flag }}</span>
+              <span style="{{ finalMatch.b.txtStyle }}">{{ finalMatch.b.txt }}</span>
+              <span style="flex:none;font-size:15px;font-weight:900">{{ finalMatch.b.badge }}</span>
+            </div>
+          </sc-if>
+        </div>
+        <div style="margin-top:8px;text-align:center">
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:#9b978f;margin-bottom:4px">3RD PLACE · {{ thirdMatch.label }}</div>
+          <div style="border:2px solid #161616;border-radius:11px;background:#fff;box-shadow:2px 2px 0 #161616;overflow:hidden">
+            <sc-if value="{{ thirdMatch.a.isTeam }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ thirdMatch.a.onClick }}" style="{{ thirdMatch.a.rowStyle }}">
+                <span style="{{ thirdMatch.a.flagStyle }}">{{ thirdMatch.a.flag }}</span>
+                <span style="{{ thirdMatch.a.txtStyle }}">{{ thirdMatch.a.txt }}</span>
+                <span style="flex:none;font-size:11px;font-weight:900">{{ thirdMatch.a.badge }}</span>
+              </div>
+            </sc-if>
+            <div style="height:1.5px;background:#161616"></div>
+            <sc-if value="{{ thirdMatch.b.isTeam }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ thirdMatch.b.onClick }}" style="{{ thirdMatch.b.rowStyle }}">
+                <span style="{{ thirdMatch.b.flagStyle }}">{{ thirdMatch.b.flag }}</span>
+                <span style="{{ thirdMatch.b.txtStyle }}">{{ thirdMatch.b.txt }}</span>
+                <span style="flex:none;font-size:11px;font-weight:900">{{ thirdMatch.b.badge }}</span>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <sc-for list="{{ right }}" as="col" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;flex:none;width:156px">
+          <div style="font-family:'Space Mono',monospace;font-size:10px;color:#9b978f;text-align:center;letter-spacing:.06em;margin-bottom:4px;height:14px">{{ col.title }}</div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <sc-for list="{{ col.matches }}" as="m" hint-placeholder-count="8">
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative">
+                <sc-for list="{{ m.conns }}" as="cn" hint-placeholder-count="0"><div style="{{ cn }}"></div></sc-for>
+                <div style="width:148px">
+                  <div style="font-family:'Space Mono',monospace;font-size:8.5px;color:#c3bfb5;padding-left:3px;margin-bottom:2px">{{ m.label }}</div>
+                  <div style="border:2.5px solid #161616;border-radius:12px;background:#fff;box-shadow:3px 3px 0 #161616;overflow:hidden">
+                    <sc-if value="{{ m.a.isSelect }}" hint-placeholder-val="{{ false }}">
+                      <select value="{{ m.a.value }}" onChange="{{ m.a.onChange }}" style="{{ m.a.selStyle }}">
+                        <option value="">{{ m.a.placeholder }}</option>
+                        <sc-for list="{{ m.a.options }}" as="o" hint-placeholder-count="0"><option value="{{ o.code }}">{{ o.label }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                    <sc-if value="{{ m.a.isTeam }}" hint-placeholder-val="{{ true }}">
+                      <div onClick="{{ m.a.onClick }}" style="{{ m.a.rowStyle }}">
+                        <span style="{{ m.a.flagStyle }}">{{ m.a.flag }}</span>
+                        <span style="{{ m.a.txtStyle }}">{{ m.a.txt }}</span>
+                        <span style="flex:none;font-size:12px;font-weight:900">{{ m.a.badge }}</span>
+                        <sc-if value="{{ m.a.editable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.a.onEdit }}" style="flex:none;width:17px;height:17px;border:1.5px solid #161616;border-radius:5px;background:#fff;cursor:pointer;font-size:8px;padding:0">✎</button></sc-if>
+                      </div>
+                    </sc-if>
+                    <div style="height:2px;background:#161616"></div>
+                    <sc-if value="{{ m.b.isSelect }}" hint-placeholder-val="{{ false }}">
+                      <select value="{{ m.b.value }}" onChange="{{ m.b.onChange }}" style="{{ m.b.selStyle }}">
+                        <option value="">{{ m.b.placeholder }}</option>
+                        <sc-for list="{{ m.b.options }}" as="o" hint-placeholder-count="0"><option value="{{ o.code }}">{{ o.label }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                    <sc-if value="{{ m.b.isTeam }}" hint-placeholder-val="{{ true }}">
+                      <div onClick="{{ m.b.onClick }}" style="{{ m.b.rowStyle }}">
+                        <span style="{{ m.b.flagStyle }}">{{ m.b.flag }}</span>
+                        <span style="{{ m.b.txtStyle }}">{{ m.b.txt }}</span>
+                        <span style="flex:none;font-size:12px;font-weight:900">{{ m.b.badge }}</span>
+                        <sc-if value="{{ m.b.editable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.b.onEdit }}" style="flex:none;width:17px;height:17px;border:1.5px solid #161616;border-radius:5px;background:#fff;cursor:pointer;font-size:8px;padding:0">✎</button></sc-if>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+
+    </div>
+  </div>
+
+  <!-- ============ SPONSORS ============ -->
+  <div style="background:#fff;border-top:3px solid #161616">
+    <div style="max-width:1320px;margin:0 auto;padding:34px 20px 38px">
+      <div style="text-align:center;margin-bottom:22px">
+        <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;color:#9b978f">OFFICIAL PARTNERS</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-top:4px">Powering Pick The Cup 2026</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px">
+        <sc-for list="{{ sponsors }}" as="s" hint-placeholder-count="6">
+          <div style="background:#FFFDF5;border:2.5px solid #161616;border-radius:16px;box-shadow:3px 3px 0 #161616;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:7px">
+            <div style="{{ s.logoStyle }}">{{ s.logo }}</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.01em">{{ s.name }}</div>
+            <div style="font-family:'Space Mono',monospace;font-size:9.5px;color:#9b978f;text-align:center">{{ s.tag }}</div>
+          </div>
+        </sc-for>
+        <div onClick="{{ openSponsor }}" style="border:2.5px dashed #c8c4ba;border-radius:16px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;cursor:pointer">
+          <div style="font-size:22px">＋</div>
+          <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:#56524b">Become a<br>sponsor</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <div style="background:#161616;color:#cfcfcf">
+    <div style="max-width:1320px;margin:0 auto;padding:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div style="width:28px;height:28px;border-radius:8px;background:#FFC23C;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px">🏆</div>
+        <span style="font-family:'Archivo Black',sans-serif;color:#fff;font-size:14px">PICK THE CUP</span>
+        <span style="font-family:'Space Mono',monospace;font-size:10px;color:#8a8f97">· #PickTheCup 2026</span>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:#8a8f97">⚡ A fan-made prediction game · powered by ACME Sports</div>
+    </div>
+  </div>
+
+  <!-- ============ SPONSOR MODAL ============ -->
+  <sc-if value="{{ showSponsor }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:60;background:rgba(22,22,22,.62);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto">
+    <div style="position:relative;width:100%;max-width:460px;background:#FFFDF5;border:3px solid #161616;border-radius:22px;box-shadow:8px 8px 0 #161616;overflow:hidden">
+      <button onClick="{{ closeSponsor }}" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:2.5px solid #161616;background:#fff;cursor:pointer;font-weight:900;font-size:15px;box-shadow:2px 2px 0 #161616;z-index:2">✕</button>
+
+      <div style="background:#2D6BFF;border-bottom:3px solid #161616;padding:20px 22px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:12px;right:46px;width:9px;height:9px;border-radius:2px;background:#FFC23C"></div>
+        <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;color:#cfe0ff">PARTNER WITH PICK THE CUP</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:24px;color:#fff;margin-top:4px;line-height:1.05">Put your brand in front of the whole tournament 🏆</div>
+      </div>
+
+      <sc-if value="{{ sponsorDone }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:32px 22px;text-align:center">
+          <div style="font-size:52px">🎉</div>
+          <h3 style="font-family:'Archivo Black',sans-serif;font-size:22px;margin:8px 0 6px">Slot reserved!</h3>
+          <p style="font-size:14px;color:#56524b;margin:0 0 18px;line-height:1.5">Thanks {{ spName }} — we'll email {{ spEmail }} within 24h to set up {{ spCompany }}'s placement.</p>
+          <button onClick="{{ closeSponsor }}" style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#fff;background:#161616;border:2.5px solid #161616;border-radius:13px;padding:12px 22px;cursor:pointer;box-shadow:3px 3px 0 #FFC23C">Done</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sponsorForm }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:18px 22px 22px">
+          <!-- stats -->
+          <div style="display:flex;gap:9px;margin-bottom:16px">
+            <div style="flex:1;background:#fff;border:2px solid #161616;border-radius:12px;padding:10px 8px;text-align:center;box-shadow:2px 2px 0 #161616">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:18px;color:#2D6BFF">12.4k</div>
+              <div style="font-family:'Space Mono',monospace;font-size:8.5px;color:#9b978f">BRACKETS</div>
+            </div>
+            <div style="flex:1;background:#fff;border:2px solid #161616;border-radius:12px;padding:10px 8px;text-align:center;box-shadow:2px 2px 0 #161616">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:18px;color:#FF3D8B">86k</div>
+              <div style="font-family:'Space Mono',monospace;font-size:8.5px;color:#9b978f">MATCH PICKS</div>
+            </div>
+            <div style="flex:1;background:#fff;border:2px solid #161616;border-radius:12px;padding:10px 8px;text-align:center;box-shadow:2px 2px 0 #161616">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:18px;color:#14B87A">7min</div>
+              <div style="font-family:'Space Mono',monospace;font-size:8.5px;color:#9b978f">AVG ON PAGE</div>
+            </div>
+          </div>
+          <!-- benefits -->
+          <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px">
+            <div style="display:flex;gap:9px;align-items:center;font-size:13px;color:#161616"><span style="font-size:15px">🪧</span> Your logo in the partner strip under the bracket</div>
+            <div style="display:flex;gap:9px;align-items:center;font-size:13px;color:#161616"><span style="font-size:15px">📲</span> "Powered by" lockup on every shared bracket image</div>
+            <div style="display:flex;gap:9px;align-items:center;font-size:13px;color:#161616"><span style="font-size:15px">🎟️</span> "Matchday presented by" banner between rounds</div>
+          </div>
+          <!-- price -->
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#FFF6E2;border:2.5px solid #161616;border-radius:14px;padding:12px 16px;margin-bottom:16px">
+            <div>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:26px;color:#161616;line-height:1">$100<span style="font-size:13px;color:#9b978f;font-family:'Space Mono',monospace"> / tournament</span></div>
+              <div style="font-family:'Space Mono',monospace;font-size:9px;color:#B8860B;margin-top:2px">LAUNCH PRICE · LIMITED SLOTS</div>
+            </div>
+            <div style="font-size:30px">🤝</div>
+          </div>
+          <!-- form -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <input value="{{ spCompany }}" onInput="{{ setSpCompany }}" placeholder="Company name" style="font-family:'Archivo',sans-serif;font-size:14px;padding:11px 13px;border:2.5px solid #161616;border-radius:12px;outline:none;background:#fff"/>
+            <div style="display:flex;gap:9px">
+              <input value="{{ spName }}" onInput="{{ setSpName }}" placeholder="Your name" style="flex:1;min-width:0;font-family:'Archivo',sans-serif;font-size:14px;padding:11px 13px;border:2.5px solid #161616;border-radius:12px;outline:none;background:#fff"/>
+              <input value="{{ spEmail }}" onInput="{{ setSpEmail }}" placeholder="Work email" style="flex:1;min-width:0;font-family:'Archivo',sans-serif;font-size:14px;padding:11px 13px;border:2.5px solid #161616;border-radius:12px;outline:none;background:#fff"/>
+            </div>
+            <button onClick="{{ submitSponsor }}" style="{{ sponsorBtnStyle }}">Reserve my slot → $100</button>
+            <div style="font-family:'Space Mono',monospace;font-size:9.5px;color:#9b978f;text-align:center">Mock checkout — no real payment taken.</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ CHAMPION OVERLAY ============ -->
+  <sc-if value="{{ showChampion }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:60;background:rgba(22,22,22,.62);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto">
+    <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
+      <sc-for list="{{ confetti }}" as="c" hint-placeholder-count="0"><div style="{{ c }}"></div></sc-for>
+    </div>
+    <div style="position:relative;width:100%;max-width:430px;background:#FFFDF5;border:3px solid #161616;border-radius:24px;box-shadow:8px 8px 0 #161616;padding:22px">
+      <button onClick="{{ closeChampion }}" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:2.5px solid #161616;background:#fff;cursor:pointer;font-weight:900;font-size:15px;box-shadow:2px 2px 0 #161616;z-index:2">✕</button>
+
+      <div style="text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:12px;color:#FF3D8B;letter-spacing:.1em;font-weight:700">🎉 BRACKET LOCKED 🎉</div>
+        <h2 style="font-family:'Archivo Black',sans-serif;font-size:26px;margin:8px 0 4px;line-height:1.02">Bold call — here's your road to the title</h2>
+      </div>
+
+      <!-- shareable funnel card (C2) -->
+      <div style="margin:14px 0 16px;background:#FBF6E8;border:3px solid #161616;border-radius:18px;box-shadow:5px 5px 0 #161616;padding:18px 16px 16px;display:flex;flex-direction:column">
+        <div style="text-align:center;margin-bottom:8px">
+          <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;color:#9b978f">FIFA WORLD CUP 2026</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:20px;color:#FF3D8B;margin-top:2px">🏆 MY ROAD TO THE TITLE</div>
+        </div>
+
+        <!-- SEMI-FINALISTS -->
+        <div style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:.12em;color:#9b978f;text-align:center;margin-bottom:8px">SEMI-FINALISTS</div>
+        <div style="display:flex">
+          <div style="flex:1;display:flex;justify-content:space-around;align-items:center">
+            <div style="{{ funnel.s0.boxStyle }}"><span style="font-size:16px">{{ funnel.s0.flag }}</span><span style="{{ funnel.s0.nameStyle }}">{{ funnel.s0.name }}</span></div>
+            <div style="{{ funnel.s1.boxStyle }}"><span style="font-size:16px">{{ funnel.s1.flag }}</span><span style="{{ funnel.s1.nameStyle }}">{{ funnel.s1.name }}</span></div>
+          </div>
+          <div style="flex:1;display:flex;justify-content:space-around;align-items:center">
+            <div style="{{ funnel.s2.boxStyle }}"><span style="font-size:16px">{{ funnel.s2.flag }}</span><span style="{{ funnel.s2.nameStyle }}">{{ funnel.s2.name }}</span></div>
+            <div style="{{ funnel.s3.boxStyle }}"><span style="font-size:16px">{{ funnel.s3.flag }}</span><span style="{{ funnel.s3.nameStyle }}">{{ funnel.s3.name }}</span></div>
+          </div>
+        </div>
+        <!-- connector: semis -> finalists -->
+        <div style="display:flex">
+          <div style="flex:1;position:relative;height:18px">
+            <div style="position:absolute;top:0;left:25%;width:2px;height:8px;background:#161616;transform:translateX(-50%)"></div>
+            <div style="position:absolute;top:0;left:75%;width:2px;height:8px;background:#161616;transform:translateX(-50%)"></div>
+            <div style="position:absolute;top:8px;left:25%;right:25%;height:2px;background:#161616"></div>
+            <div style="position:absolute;top:8px;left:50%;bottom:0;width:2px;background:#161616;transform:translateX(-50%)"></div>
+          </div>
+          <div style="flex:1;position:relative;height:18px">
+            <div style="position:absolute;top:0;left:25%;width:2px;height:8px;background:#161616;transform:translateX(-50%)"></div>
+            <div style="position:absolute;top:0;left:75%;width:2px;height:8px;background:#161616;transform:translateX(-50%)"></div>
+            <div style="position:absolute;top:8px;left:25%;right:25%;height:2px;background:#161616"></div>
+            <div style="position:absolute;top:8px;left:50%;bottom:0;width:2px;background:#161616;transform:translateX(-50%)"></div>
+          </div>
+        </div>
+        <!-- FINALISTS -->
+        <div style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:.12em;color:#9b978f;text-align:center;margin:6px 0 8px">FINALISTS</div>
+        <div style="display:flex">
+          <div style="flex:1;display:flex;justify-content:center">
+            <div style="{{ funnel.f0.boxStyle }}"><span style="font-size:17px">{{ funnel.f0.flag }}</span><span style="{{ funnel.f0.nameStyle }}">{{ funnel.f0.name }}</span><span style="font-size:12px;font-weight:900;color:#fff">{{ funnel.f0.check }}</span></div>
+          </div>
+          <div style="flex:1;display:flex;justify-content:center">
+            <div style="{{ funnel.f1.boxStyle }}"><span style="font-size:17px">{{ funnel.f1.flag }}</span><span style="{{ funnel.f1.nameStyle }}">{{ funnel.f1.name }}</span><span style="font-size:12px;font-weight:900;color:#fff">{{ funnel.f1.check }}</span></div>
+          </div>
+        </div>
+        <!-- connector: finalists -> champion -->
+        <div style="position:relative;height:18px">
+          <div style="position:absolute;top:0;left:25%;width:2px;height:8px;background:#161616;transform:translateX(-50%)"></div>
+          <div style="position:absolute;top:0;left:75%;width:2px;height:8px;background:#161616;transform:translateX(-50%)"></div>
+          <div style="position:absolute;top:8px;left:25%;right:25%;height:2px;background:#161616"></div>
+          <div style="position:absolute;top:8px;left:50%;bottom:0;width:2px;background:#161616;transform:translateX(-50%)"></div>
+        </div>
+        <!-- CHAMPION -->
+        <div style="display:flex;justify-content:center;margin-top:4px">
+          <div style="border:3px solid #161616;border-radius:14px;background:linear-gradient(135deg,#FFD23C,#FFB01F);box-shadow:4px 4px 0 #161616;padding:10px 18px;display:flex;align-items:center;gap:11px;white-space:nowrap">
+            <span style="font-size:30px">{{ funnel.champFlag }}</span>
+            <div style="text-align:left"><div style="font-family:'Archivo Black',sans-serif;font-size:21px;color:#161616;line-height:1">{{ funnel.champName }}</div><div style="font-family:'Space Mono',monospace;font-size:9px;color:#6b5a16;letter-spacing:.1em;margin-top:2px">WORLD CHAMPION</div></div>
+            <span style="font-size:26px">👑</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:2px solid #161616;padding-top:11px;margin-top:16px">
+          <span style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#161616">PICK THE CUP</span>
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:#9b978f">#PickTheCup</span>
+        </div>
+      </div>
+
+      <div style="font-family:'Space Mono',monospace;font-size:11px;color:#56524b;text-align:center;margin-bottom:9px">SHARE YOUR BRACKET</div>
+      <div style="display:flex;gap:9px;margin-bottom:14px">
+        <button onClick="{{ shareInstagram }}" style="flex:1;font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:#fff;background:linear-gradient(135deg,#FEDA77,#F58529,#DD2A7B,#8134AF);border:2.5px solid #161616;border-radius:13px;padding:12px;cursor:pointer;box-shadow:3px 3px 0 #161616">Instagram</button>
+        <button onClick="{{ shareX }}" style="width:50px;font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;color:#fff;background:#161616;border:2.5px solid #161616;border-radius:13px;padding:12px;cursor:pointer;box-shadow:3px 3px 0 #161616">𝕏</button>
+        <button onClick="{{ shareThreads }}" style="width:50px;font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;color:#161616;background:#fff;border:2.5px solid #161616;border-radius:13px;padding:12px;cursor:pointer;box-shadow:3px 3px 0 #161616">@</button>
+        <button onClick="{{ shareFacebook }}" style="width:50px;font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;color:#fff;background:#2D6BFF;border:2.5px solid #161616;border-radius:13px;padding:12px;cursor:pointer;box-shadow:3px 3px 0 #161616">f</button>
+      </div>
+      <div style="border-top:2px dashed #d9d5cc;padding-top:14px">
+        <sc-if value="{{ emailDone }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;font-weight:800;color:#0E9E68;font-size:14px">✓ Sent! Check your inbox for your bracket.</div>
+        </sc-if>
+        <sc-if value="{{ emailNotDone }}" hint-placeholder-val="{{ true }}">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#56524b;margin-bottom:8px">📬 EMAIL ME MY BRACKET (&amp; JOIN THE LEADERBOARD)</div>
+          <div style="display:flex;gap:8px">
+            <input value="{{ email }}" onInput="{{ setEmail }}" placeholder="you@email.com" style="flex:1;font-family:'Archivo',sans-serif;font-size:14px;padding:11px 13px;border:2.5px solid #161616;border-radius:12px;outline:none;background:#fff"/>
+            <button onClick="{{ submitEmail }}" style="font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:#fff;background:#14B87A;border:2.5px solid #161616;border-radius:12px;padding:11px 15px;cursor:pointer;box-shadow:2px 2px 0 #161616">Send</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  TEAMS = {
+    MEX:{n:'Mexico',f:'🇲🇽'}, CRO:{n:'Croatia',f:'🇭🇷'}, NOR:{n:'Norway',f:'🇳🇴'}, KSA:{n:'Saudi Arabia',f:'🇸🇦'},
+    CAN:{n:'Canada',f:'🇨🇦'}, BEL:{n:'Belgium',f:'🇧🇪'}, EGY:{n:'Egypt',f:'🇪🇬'}, NZL:{n:'New Zealand',f:'🇳🇿'},
+    ARG:{n:'Argentina',f:'🇦🇷'}, AUS:{n:'Australia',f:'🇦🇺'}, CIV:{n:'Ivory Coast',f:'🇨🇮'}, PAN:{n:'Panama',f:'🇵🇦'},
+    USA:{n:'USA',f:'🇺🇸'}, SEN:{n:'Senegal',f:'🇸🇳'}, SUI:{n:'Switzerland',f:'🇨🇭'}, PAR:{n:'Paraguay',f:'🇵🇾'},
+    ESP:{n:'Spain',f:'🇪🇸'}, UKR:{n:'Ukraine',f:'🇺🇦'}, JPN:{n:'Japan',f:'🇯🇵'}, QAT:{n:'Qatar',f:'🇶🇦'},
+    FRA:{n:'France',f:'🇫🇷'}, POL:{n:'Poland',f:'🇵🇱'}, ECU:{n:'Ecuador',f:'🇪🇨'}, JAM:{n:'Jamaica',f:'🇯🇲'},
+    BRA:{n:'Brazil',f:'🇧🇷'}, KOR:{n:'Korea Rep.',f:'🇰🇷'}, NGA:{n:'Nigeria',f:'🇳🇬'}, CRC:{n:'Costa Rica',f:'🇨🇷'},
+    ENG:{n:'England',f:'🇬🇧'}, DEN:{n:'Denmark',f:'🇩🇰'}, TUN:{n:'Tunisia',f:'🇹🇳'}, PER:{n:'Peru',f:'🇵🇪'},
+    POR:{n:'Portugal',f:'🇵🇹'}, SRB:{n:'Serbia',f:'🇷🇸'}, CMR:{n:'Cameroon',f:'🇨🇲'}, CHI:{n:'Chile',f:'🇨🇱'},
+    NED:{n:'Netherlands',f:'🇳🇱'}, IRN:{n:'Iran',f:'🇮🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, ALG:{n:'Algeria',f:'🇩🇿'},
+    GER:{n:'Germany',f:'🇩🇪'}, URU:{n:'Uruguay',f:'🇺🇾'}, MAR:{n:'Morocco',f:'🇲🇦'}, SWE:{n:'Sweden',f:'🇸🇪'},
+    COL:{n:'Colombia',f:'🇨🇴'}, TUR:{n:'Türkiye',f:'🇹🇷'}, AUT:{n:'Austria',f:'🇦🇹'}, MLI:{n:'Mali',f:'🇲🇱'}
+  };
+
+  GROUPS = {
+    A:['MEX','CRO','NOR','KSA'], B:['CAN','BEL','EGY','NZL'], C:['ARG','AUS','CIV','PAN'],
+    D:['USA','SEN','SUI','PAR'], E:['ESP','UKR','JPN','QAT'], F:['FRA','POL','ECU','JAM'],
+    G:['BRA','KOR','NGA','CRC'], H:['ENG','DEN','TUN','PER'], I:['POR','SRB','CMR','CHI'],
+    J:['NED','IRN','GHA','ALG'], K:['GER','URU','MAR','SWE'], L:['COL','TUR','AUT','MLI']
+  };
+
+  KO = [
+    {id:'M74',a:{r:'g:A:1',p:'1A'},b:{r:'w:0',p:'3ABCDF'}},
+    {id:'M77',a:{r:'g:B:1',p:'1B'},b:{r:'w:1',p:'3CDFGH'}},
+    {id:'M73',a:{r:'g:A:2',p:'2A'},b:{r:'g:C:2',p:'2C'}},
+    {id:'M75',a:{r:'g:C:1',p:'1C'},b:{r:'g:D:2',p:'2D'}},
+    {id:'M83',a:{r:'g:D:1',p:'1D'},b:{r:'g:E:2',p:'2E'}},
+    {id:'M84',a:{r:'g:E:1',p:'1E'},b:{r:'g:F:2',p:'2F'}},
+    {id:'M81',a:{r:'g:F:1',p:'1F'},b:{r:'w:2',p:'3BEFIJ'}},
+    {id:'M82',a:{r:'g:G:1',p:'1G'},b:{r:'w:3',p:'3AEHIJ'}},
+    {id:'M76',a:{r:'g:H:1',p:'1H'},b:{r:'g:G:2',p:'2G'}},
+    {id:'M78',a:{r:'g:I:1',p:'1I'},b:{r:'g:H:2',p:'2H'}},
+    {id:'M79',a:{r:'g:J:1',p:'1J'},b:{r:'w:4',p:'3CEFHI'}},
+    {id:'M80',a:{r:'g:K:1',p:'1K'},b:{r:'w:5',p:'3EHIJK'}},
+    {id:'M86',a:{r:'g:L:1',p:'1L'},b:{r:'g:I:2',p:'2I'}},
+    {id:'M88',a:{r:'g:B:2',p:'2B'},b:{r:'g:J:2',p:'2J'}},
+    {id:'M85',a:{r:'g:K:2',p:'2K'},b:{r:'w:6',p:'3EFGIJ'}},
+    {id:'M87',a:{r:'g:L:2',p:'2L'},b:{r:'w:7',p:'3DEIJL'}},
+    {id:'M89',a:{r:'win:M74',p:'W74'},b:{r:'win:M77',p:'W77'}},
+    {id:'M90',a:{r:'win:M73',p:'W73'},b:{r:'win:M75',p:'W75'}},
+    {id:'M93',a:{r:'win:M83',p:'W83'},b:{r:'win:M84',p:'W84'}},
+    {id:'M94',a:{r:'win:M81',p:'W81'},b:{r:'win:M82',p:'W82'}},
+    {id:'M91',a:{r:'win:M76',p:'W76'},b:{r:'win:M78',p:'W78'}},
+    {id:'M92',a:{r:'win:M79',p:'W79'},b:{r:'win:M80',p:'W80'}},
+    {id:'M95',a:{r:'win:M86',p:'W86'},b:{r:'win:M88',p:'W88'}},
+    {id:'M96',a:{r:'win:M85',p:'W85'},b:{r:'win:M87',p:'W87'}},
+    {id:'M97',a:{r:'win:M89',p:'W89'},b:{r:'win:M90',p:'W90'}},
+    {id:'M98',a:{r:'win:M93',p:'W93'},b:{r:'win:M94',p:'W94'}},
+    {id:'M99',a:{r:'win:M91',p:'W91'},b:{r:'win:M92',p:'W92'}},
+    {id:'M100',a:{r:'win:M95',p:'W95'},b:{r:'win:M96',p:'W96'}},
+    {id:'M101',a:{r:'win:M97',p:'W97'},b:{r:'win:M98',p:'W98'}},
+    {id:'M102',a:{r:'win:M99',p:'W99'},b:{r:'win:M100',p:'W100'}},
+    {id:'M104',a:{r:'win:M101',p:'W101'},b:{r:'win:M102',p:'W102'}},
+    {id:'M103',a:{r:'lose:M101',p:'RU101'},b:{r:'lose:M102',p:'RU102'}}
+  ];
+  KOby = this.KO.reduce((o,m)=>{o[m.id]=m;return o;},{});
+
+  leftCols = [
+    {title:'ROUND OF 32', matches:['M74','M77','M73','M75','M83','M84','M81','M82']},
+    {title:'ROUND OF 16', matches:['M89','M90','M93','M94']},
+    {title:'QUARTER', matches:['M97','M98']},
+    {title:'SEMI', matches:['M101']}
+  ];
+  rightCols = [
+    {title:'SEMI', matches:['M102']},
+    {title:'QUARTER', matches:['M99','M100']},
+    {title:'ROUND OF 16', matches:['M91','M92','M95','M96']},
+    {title:'ROUND OF 32', matches:['M76','M78','M79','M80','M86','M88','M85','M87']}
+  ];
+
+  confetti = Array.from({length:90},()=>{
+    const c=['#FF5A3C','#2D6BFF','#14B87A','#FFC23C','#FF3D8B'];
+    return {position:'absolute',top:'-30px',left:(Math.random()*100).toFixed(2)+'%',
+      width:(6+Math.random()*8).toFixed(0)+'px',height:(9+Math.random()*11).toFixed(0)+'px',
+      background:c[Math.floor(Math.random()*c.length)],borderRadius:Math.random()<.5?'2px':'50%',
+      animation:'conffall '+(2.6+Math.random()*2.6).toFixed(2)+'s linear '+(Math.random()*2.8).toFixed(2)+'s infinite',opacity:.92};
+  });
+
+  state = (()=>{ let s={}; try{ s=JSON.parse(localStorage.getItem('wc26bracket2')||'{}'); }catch(e){}
+    return {slots:s.slots||{}, picks:s.picks||{}, email:s.email||'', emailDone:false, showChampion:false,
+      showSponsor:false, sponsorDone:false, spCompany:'', spName:'', spEmail:''}; })();
+
+  persist(){ try{ localStorage.setItem('wc26bracket2', JSON.stringify({slots:this.state.slots,picks:this.state.picks,email:this.state.email})); }catch(e){} }
+  commit(p){ this.setState(p, ()=>this.persist()); }
+  team(code){ const t=this.TEAMS[code]; return {code, name:t?t.n:code, flag:t?t.f:''}; }
+
+  isLeaf(ref){ return ref.indexOf('g:')===0 || ref.indexOf('w:')===0; }
+  poolFor(p){ const letters=p.slice(1).split(''); const out=[]; letters.forEach(l=>{ (this.GROUPS[l]||[]).forEach(c=>out.push(c)); }); return out; }
+  slotLabel(p){ const r=p[0],L=p.slice(1); if(r==='1')return 'Win · '+L; if(r==='2')return '2nd · '+L; return '3rd · '+L; }
+
+  computeKO(slots,picks){
+    const res={};
+    const resolve=(ref)=>{ const parts=ref.split(':'); if(parts[0]==='win')return res[parts[1]]?res[parts[1]].winner:null; if(parts[0]==='lose')return res[parts[1]]?res[parts[1]].loser:null; return null; };
+    for(const m of this.KO){
+      const a = this.isLeaf(m.a.r)? (slots[m.id+'|a']||null) : resolve(m.a.r);
+      const b = this.isLeaf(m.b.r)? (slots[m.id+'|b']||null) : resolve(m.b.r);
+      let w=picks[m.id]; if(w!==a&&w!==b) w=null; const l=w?(w===a?b:a):null;
+      res[m.id]={a,b,winner:w,loser:l};
+    }
+    return res;
+  }
+  prune(slots,picks){ let p={...picks};
+    for(let i=0;i<12;i++){ const res=this.computeKO(slots,p); let ch=false;
+      for(const id in p){ if(p[id] && res[id] && res[id].winner!==p[id]){ delete p[id]; ch=true; } }
+      if(!ch) break; }
+    return p;
+  }
+
+  selectSlot(key,code){ const slots={...this.state.slots}; if(code) slots[key]=code; else delete slots[key]; const picks=this.prune(slots,this.state.picks); this.commit({slots,picks}); }
+  clearSlot(key){ const slots={...this.state.slots}; delete slots[key]; const picks=this.prune(slots,this.state.picks); this.commit({slots,picks}); }
+  pick(id,code){ const picks=this.prune(this.state.slots,{...this.state.picks,[id]:code});
+    const isChamp = id==='M104' && picks['M104']===code;
+    this.commit({picks, showChampion: isChamp?true:this.state.showChampion}); }
+
+  shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  fillRandom(){
+    const slots={}; const used=new Set();
+    const leaves=[];
+    this.KO.forEach(m=>{ if(this.isLeaf(m.a.r)) leaves.push({key:m.id+'|a',p:m.a.p}); if(this.isLeaf(m.b.r)) leaves.push({key:m.id+'|b',p:m.b.p}); });
+    leaves.sort((x,y)=>this.poolFor(x.p).length-this.poolFor(y.p).length);
+    leaves.forEach(s=>{ let pool=this.poolFor(s.p).filter(c=>!used.has(c)); if(!pool.length) pool=this.poolFor(s.p);
+      const c=pool[Math.floor(Math.random()*pool.length)]; slots[s.key]=c; used.add(c); });
+    const res={}; const picks={};
+    const resolve=(ref)=>{ const parts=ref.split(':'); if(parts[0]==='win')return res[parts[1]]?res[parts[1]].winner:null; if(parts[0]==='lose')return res[parts[1]]?res[parts[1]].loser:null; return null; };
+    for(const m of this.KO){ const a=this.isLeaf(m.a.r)?slots[m.id+'|a']:resolve(m.a.r); const b=this.isLeaf(m.b.r)?slots[m.id+'|b']:resolve(m.b.r);
+      let w=null,l=null; if(a&&b){ w=Math.random()<.5?a:b; l=(w===a?b:a); picks[m.id]=w; } res[m.id]={a,b,winner:w,loser:l}; }
+    return {slots,picks};
+  }
+  doAutofill(){ const r=this.fillRandom(); this.commit({...r, showChampion:true, emailDone:false}); }
+  doReset(){ this.commit({slots:{},picks:{},showChampion:false,emailDone:false}); }
+
+  setEmail(e){ this.setState({email:e.target.value}); }
+  submitEmail(){ if((this.state.email||'').includes('@')){ this.commit({emailDone:true}); } }
+
+  buildNode(m,rr,isFinal,used){
+    const self=this;
+    const mk=(slot,ref,code,side)=>{
+      const leaf=self.isLeaf(ref); const key=m.id+'|'+side;
+      if(leaf && !code){
+        const pool=self.poolFor(slot.p).filter(c=>!used.has(c));
+        const opts=pool.map(c=>{ const t=self.team(c); return {code:c,label:t.flag+' '+t.name}; });
+        return {isSelect:true,isTeam:false, value:'', placeholder:self.slotLabel(slot.p), options:opts,
+          onChange:(e)=>self.selectSlot(key,e.target.value),
+          selStyle:{width:'100%',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:isFinal?'13px':'10.5px',padding:isFinal?'12px 18px 12px 10px':'8px 16px 8px 7px',border:'none',background:'#FBFAF6',color:'#8a857c',cursor:'pointer',outline:'none'}};
+      }
+      const resolved=!!code;
+      const isWin=rr.winner&&code===rr.winner;
+      const isLose=rr.winner&&resolved&&code!==rr.winner;
+      const t=resolved?self.team(code):null;
+      const bothFilled=!!rr.a&&!!rr.b;
+      const txt=resolved?(isFinal?t.name:t.code):slot.p;
+      const flag=resolved?t.flag:'';
+      const base={display:'flex',alignItems:'center',gap:'6px',padding:isFinal?'13px 14px':'8px 8px',cursor:(resolved&&bothFilled)?'pointer':'default',fontFamily:"'Archivo',sans-serif",lineHeight:1,transition:'background .15s'};
+      let rowStyle;
+      if(isWin && isFinal) rowStyle={...base,background:'linear-gradient(135deg,#FFD23C,#FFB01F)',color:'#161616',fontWeight:900,boxShadow:'inset 0 0 0 2px #161616'};
+      else if(isWin) rowStyle={...base,background:'#17C988',color:'#fff',fontWeight:900};
+      else if(isLose) rowStyle={...base,background:'#fff',color:'#161616',fontWeight:800,opacity:.4,textDecoration:'line-through'};
+      else if(resolved) rowStyle={...base,background:'#fff',color:'#161616',fontWeight:800};
+      else rowStyle={...base,background:'#fbfaf6',color:'#bdb8ae',fontWeight:700,fontStyle:'italic'};
+      return {isSelect:false,isTeam:true,
+        flag, txt, badge:isWin?'✓':'',
+        flagStyle:{fontSize:isFinal?'22px':'15px',flex:'none',width:isFinal?'auto':'17px'},
+        txtStyle:{flex:1,fontSize:isFinal?'15px':'12px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'},
+        rowStyle, onClick:(resolved&&bothFilled)?()=>self.pick(m.id,code):null,
+        editable: leaf&&resolved, onEdit:(e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); self.clearSlot(key); }};
+    };
+    return {id:m.id,label:m.id,a:mk(m.a,m.a.r,rr.a,'a'),b:mk(m.b,m.b.r,rr.b,'b')};
+  }
+
+  renderVals(){
+    const slots=this.state.slots||{}, picks=this.state.picks||{};
+    const res=this.computeKO(slots,picks);
+    const used=new Set(Object.values(slots));
+
+    const made=Object.keys(slots).length + Object.keys(picks).length;
+    const total=64;
+    const pct=Math.max(2,Math.round(made/total*100));
+    const barStyle={height:'100%',background:'#FFC23C',borderRadius:'999px',transition:'width .4s ease',width:pct+'%'};
+
+    const nodeOf=(id)=>this.buildNode(this.KOby[id],res[id],false,used);
+    const BK='#161616';
+    const hStub=(right)=>({position:'absolute',top:'50%',[right?'right':'left']:'-7px',width:'11px',height:'2px',background:BK,transform:'translateY(-50%)'});
+    const vJoin=(right)=>({position:'absolute',top:'50%',[right?'right':'left']:'-7px',width:'2px',height:'100%',background:BK});
+    const connsFor=(side,ci,p,n)=>{ const a=[];
+      if(side==='left'){ a.push(hStub(true)); if(ci>0) a.push(hStub(false)); if(ci<n-1 && p%2===0) a.push(vJoin(true)); }
+      else { a.push(hStub(false)); if(ci<n-1) a.push(hStub(true)); if(ci>0 && p%2===0) a.push(vJoin(false)); }
+      return a; };
+    const left=this.leftCols.map((c,ci)=>({title:c.title,matches:c.matches.map((id,p)=>{const nd=nodeOf(id); nd.conns=connsFor('left',ci,p,this.leftCols.length); return nd;})}));
+    const right=this.rightCols.map((c,ci)=>({title:c.title,matches:c.matches.map((id,p)=>{const nd=nodeOf(id); nd.conns=connsFor('right',ci,p,this.rightCols.length); return nd;})}));
+    const finalMatch=this.buildNode(this.KOby['M104'],res['M104'],true,used);
+    const thirdMatch=this.buildNode(this.KOby['M103'],res['M103'],false,used);
+
+    const champCode=res['M104'].winner;
+    const runCode=res['M104'].loser;
+    const thirdCode=res['M103'].winner;
+    const champion=champCode?this.team(champCode):null;
+    const canShare=!!champCode;
+
+    // ---- C2 funnel (semifinalists -> finalists -> champion), live from bracket ----
+    const rSemiL=res['M101'], rSemiR=res['M102'], rFinal=res['M104'];
+    const semiWL=rSemiL.winner, semiWR=rSemiR.winner, finalW=rFinal.winner;
+    const fbox=(code,variant)=>{ const t=code?this.team(code):null;
+      const base={display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',flex:'none',fontFamily:"'Archivo',sans-serif"};
+      let box,nm,chk='';
+      if(variant==='green'){ box={...base,width:'108px',height:'40px',border:'2.5px solid #161616',borderRadius:'11px',background:'#17C988',boxShadow:'3px 3px 0 #161616'}; nm={fontFamily:"'Archivo Black',sans-serif",fontSize:'14px',color:'#fff'}; chk='✓'; }
+      else if(variant==='dimBig'){ box={...base,width:'108px',height:'40px',border:'2.5px solid #161616',borderRadius:'11px',background:'#fff',boxShadow:'3px 3px 0 #161616',opacity:.42}; nm={fontFamily:"'Archivo Black',sans-serif",fontSize:'14px',color:'#161616',textDecoration:'line-through'}; }
+      else if(variant==='plain'){ box={...base,width:'70px',height:'40px',border:'2px solid #161616',borderRadius:'9px',background:'#fff',boxShadow:'2px 2px 0 #161616'}; nm={fontFamily:"'Archivo Black',sans-serif",fontSize:'11px',color:'#161616'}; }
+      else { box={...base,width:'70px',height:'40px',border:'2px solid #161616',borderRadius:'9px',background:'#fff',opacity:.42}; nm={fontFamily:"'Archivo Black',sans-serif",fontSize:'11px',color:'#161616',textDecoration:'line-through'}; }
+      return {flag:t?t.flag:'', name:t?t.code:'', boxStyle:box, nameStyle:nm, check:chk};
+    };
+    const semiVar=(code,winner)=> code===winner?'plain':'out';
+    const finVar=(code)=> code===finalW?'green':'dimBig';
+    const funnel={
+      s0:fbox(rSemiL.a, semiVar(rSemiL.a,semiWL)), s1:fbox(rSemiL.b, semiVar(rSemiL.b,semiWL)),
+      s2:fbox(rSemiR.a, semiVar(rSemiR.a,semiWR)), s3:fbox(rSemiR.b, semiVar(rSemiR.b,semiWR)),
+      f0:fbox(semiWL, finVar(semiWL)), f1:fbox(semiWR, finVar(semiWR)),
+      champFlag: champion?champion.flag:'', champName: champion?champion.name:''
+    };
+
+    const medalRow=(bg)=>({display:'flex',alignItems:'center',gap:'10px',background:bg,border:'2px solid #161616',borderRadius:'12px',padding:'9px 12px'});
+    const nameStyle=(big)=>({fontFamily:"'Archivo Black',sans-serif",color:'#161616',fontSize:big?'19px':'15px',flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'});
+    const podium=[
+      {medal:'🥇',flag:champCode?this.team(champCode).flag:'🏆',name:champCode?this.team(champCode).name:'—',rowStyle:medalRow('#FFE08A'),nameStyle:nameStyle(true)},
+      {medal:'🥈',flag:runCode?this.team(runCode).flag:'⚪',name:runCode?this.team(runCode).name:'Runner-up',rowStyle:medalRow('#EAECEF'),nameStyle:nameStyle(false)},
+      {medal:'🥉',flag:thirdCode?this.team(thirdCode).flag:'🟫',name:thirdCode?this.team(thirdCode).name:'Play the 3rd-place match',rowStyle:medalRow('#F2D9B8'),nameStyle:nameStyle(false)}
+    ];
+
+    const sponsors=[      {logo:'◇',name:'NIMBUS',tag:'Official Mobility',bg:'#2D6BFF',lg:'#fff'},
+      {logo:'▲',name:'APEX',tag:'Energy Partner',bg:'#FF5A3C',lg:'#fff'},
+      {logo:'★',name:'VOLT',tag:'Official Drink',bg:'#FFC23C',lg:'#161616'},
+      {logo:'●',name:'ORBIT',tag:'Telecom',bg:'#14B87A',lg:'#fff'},
+      {logo:'✦',name:'LUMA',tag:'Banking',bg:'#8134AF',lg:'#fff'},
+      {logo:'◆',name:'PEAK',tag:'Travel',bg:'#FF3D8B',lg:'#fff'}
+    ].map(s=>({...s, logoStyle:{width:'44px',height:'44px',borderRadius:'11px',border:'2px solid #161616',background:s.bg,color:s.lg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'20px',fontFamily:"'Archivo Black',sans-serif"}}));
+
+    const shareBtnStyle = canShare
+      ? {fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:'12px',color:'#161616',background:'#FFC23C',border:'2.5px solid #161616',borderRadius:'11px',padding:'9px 13px',cursor:'pointer',boxShadow:'2px 2px 0 #161616'}
+      : {fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:'12px',color:'#9b978f',background:'#efece4',border:'2.5px solid #c8c4ba',borderRadius:'11px',padding:'9px 13px',cursor:'not-allowed'};
+
+    const share=(net)=>{      const champName = champion?champion.name:'my team';
+      const text = champion ? 'My 2026 World Cup champion: '+champName+'! 🏆 Build yours #PickTheCup' : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
+      const url='https://example.com/pickthecup'; const enc=encodeURIComponent(text);
+      let href='';
+      if(net==='x') href='https://twitter.com/intent/tweet?text='+enc+'&url='+encodeURIComponent(url);
+      else if(net==='threads') href='https://www.threads.net/intent/post?text='+enc;
+      else if(net==='facebook') href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url)+'&quote='+enc;
+      else if(net==='instagram') href='https://www.instagram.com/';
+      try{ window.open(href,'_blank','noopener'); }catch(e){}
+    };
+
+    return {
+      barStyle, progressText: made+' / '+total+' PICKS',
+      doReset:()=>this.doReset(), doAutofill:()=>this.doAutofill(),
+      scrollToBracket:()=>{ try{ const el=document.getElementById('bracket'); if(el){ const y=el.getBoundingClientRect().top+window.scrollY-58; window.scrollTo({top:y,behavior:'smooth'}); } }catch(e){} },
+      sponsors,
+      showSponsor:this.state.showSponsor, sponsorDone:this.state.sponsorDone, sponsorForm:!this.state.sponsorDone,
+      openSponsor:()=>this.setState({showSponsor:true,sponsorDone:false}),
+      closeSponsor:()=>this.setState({showSponsor:false}),
+      spCompany:this.state.spCompany, spName:this.state.spName, spEmail:this.state.spEmail,
+      setSpCompany:(e)=>this.setState({spCompany:e.target.value}),
+      setSpName:(e)=>this.setState({spName:e.target.value}),
+      setSpEmail:(e)=>this.setState({spEmail:e.target.value}),
+      submitSponsor:()=>{ if(this.state.spCompany&&this.state.spName&&(this.state.spEmail||'').includes('@')) this.setState({sponsorDone:true}); },
+      sponsorBtnStyle: (this.state.spCompany&&this.state.spName&&(this.state.spEmail||'').includes('@'))
+        ? {fontFamily:"'Archivo Black',sans-serif",fontSize:'15px',color:'#fff',background:'#14B87A',border:'2.5px solid #161616',borderRadius:'13px',padding:'13px',cursor:'pointer',boxShadow:'3px 3px 0 #161616'}
+        : {fontFamily:"'Archivo Black',sans-serif",fontSize:'15px',color:'#9b978f',background:'#efece4',border:'2.5px solid #c8c4ba',borderRadius:'13px',padding:'13px',cursor:'not-allowed'},
+      shareClick:()=> canShare? this.setState({showChampion:true}) : null,
+      shareBtnStyle, shareLabel: canShare?'📲 Share':'🔒 Share',
+      left, right, finalMatch, thirdMatch,
+      showChampion: this.state.showChampion,
+      champion: champion||{name:'',flag:''}, podium, funnel,
+      confetti: this.confetti,
+      closeChampion:()=>this.setState({showChampion:false}),
+      shareInstagram:()=>share('instagram'), shareX:()=>share('x'), shareThreads:()=>share('threads'), shareFacebook:()=>share('facebook'),
+      email:this.state.email, setEmail:(e)=>this.setEmail(e), submitEmail:()=>this.submitEmail(),
+      emailDone:this.state.emailDone, emailNotDone:!this.state.emailDone
+    };
+  }
+}
+</script>
+</body>
+</html>

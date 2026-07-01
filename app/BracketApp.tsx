@@ -1,0 +1,753 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import {
+  TEAMS, KO, KOby, LEFT_COLS, RIGHT_COLS,
+  computeKO, prune, fillRandom, isLeaf, poolFor, slotLabel,
+  type MatchResult,
+} from './data';
+
+/* ─── State ─────────────────────────────────────────────────── */
+interface BracketState {
+  slots: Record<string, string>;
+  picks: Record<string, string>;
+  email: string;
+}
+
+function loadState(): BracketState {
+  if (typeof window === 'undefined') return { slots: {}, picks: {}, email: '' };
+  try {
+    const s = JSON.parse(localStorage.getItem('wc26bracket2') || '{}');
+    return { slots: s.slots || {}, picks: s.picks || {}, email: s.email || '' };
+  } catch { return { slots: {}, picks: {}, email: '' }; }
+}
+
+function saveState(s: BracketState) {
+  try { localStorage.setItem('wc26bracket2', JSON.stringify(s)); } catch {}
+}
+
+/* ─── Confetti ───────────────────────────────────────────────── */
+const CONFETTI_COLORS = ['#FF5A3C','#2D6BFF','#14B87A','#FFC23C','#FF3D8B'];
+const confettiPieces = Array.from({ length: 90 }, () => ({
+  left: (Math.random() * 100).toFixed(2) + '%',
+  width: (6 + Math.random() * 8).toFixed(0) + 'px',
+  height: (9 + Math.random() * 11).toFixed(0) + 'px',
+  background: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+  borderRadius: Math.random() < 0.5 ? '2px' : '50%',
+  duration: (2.6 + Math.random() * 2.6).toFixed(2),
+  delay: (Math.random() * 2.8).toFixed(2),
+}));
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+const team = (code: string) => {
+  const t = TEAMS[code];
+  return { code, name: t?.n ?? code, flag: t?.f ?? '' };
+};
+
+/* ─── Main component ─────────────────────────────────────────── */
+export function BracketApp() {
+  const [state, setStateRaw] = useState<BracketState>({ slots: {}, picks: {}, email: '' });
+  const [showChampion, setShowChampion] = useState(false);
+  const [showSponsor, setShowSponsor]   = useState(false);
+  const [sponsorDone, setSponsorDone]   = useState(false);
+  const [spCompany, setSpCompany]       = useState('');
+  const [spName, setSpName]             = useState('');
+  const [spEmail, setSpEmail]           = useState('');
+  const [emailDone, setEmailDone]       = useState(false);
+  const bracketRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setStateRaw(loadState()); }, []);
+
+  const commit = (patch: Partial<BracketState>) => {
+    setStateRaw(prev => {
+      const next = { ...prev, ...patch };
+      saveState(next);
+      return next;
+    });
+  };
+
+  const { slots, picks, email } = state;
+  const res = computeKO(slots, picks);
+  const used = new Set(Object.values(slots));
+  const made = Object.keys(slots).length + Object.keys(picks).length;
+  const total = 64;
+  const pct = Math.max(2, Math.round(made / total * 100));
+
+  const champCode = res['M104']?.winner ?? null;
+  const runCode   = res['M104']?.loser   ?? null;
+  const thirdCode = res['M103']?.winner  ?? null;
+  const champion  = champCode ? team(champCode) : null;
+  const canShare  = !!champCode;
+
+  const selectSlot = (key: string, code: string) => {
+    const newSlots = { ...slots };
+    if (code) newSlots[key] = code; else delete newSlots[key];
+    commit({ slots: newSlots, picks: prune(newSlots, picks) });
+  };
+  const clearSlot = (key: string) => {
+    const newSlots = { ...slots }; delete newSlots[key];
+    commit({ slots: newSlots, picks: prune(newSlots, picks) });
+  };
+  const pick = (id: string, code: string) => {
+    const newPicks = prune(slots, { ...picks, [id]: code });
+    const isChamp = id === 'M104' && newPicks['M104'] === code;
+    commit({ picks: newPicks });
+    if (isChamp) setShowChampion(true);
+  };
+  const doReset = () => {
+    commit({ slots: {}, picks: {} });
+    setShowChampion(false);
+    setEmailDone(false);
+  };
+  const doAutofill = () => {
+    const r = fillRandom();
+    commit(r);
+    setShowChampion(true);
+    setEmailDone(false);
+  };
+
+  const scrollToBracket = () => {
+    const el = bracketRef.current;
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 58;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  const share = (net: string) => {
+    const champName = champion?.name ?? 'my team';
+    const text = champion
+      ? `My 2026 World Cup champion: ${champName}! 🏆 Build yours #PickTheCup`
+      : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
+    const url = typeof window !== 'undefined' ? window.location.href : 'https://pickthecup.app';
+    const enc = encodeURIComponent(text);
+    let href = '';
+    if (net === 'x')        href = `https://twitter.com/intent/tweet?text=${enc}&url=${encodeURIComponent(url)}`;
+    else if (net === 'threads') href = `https://www.threads.net/intent/post?text=${enc}`;
+    else if (net === 'facebook') href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${enc}`;
+    else if (net === 'instagram') href = 'https://www.instagram.com/';
+    try { window.open(href, '_blank', 'noopener'); } catch {}
+  };
+
+  const submitSponsor = () => {
+    if (spCompany && spName && spEmail.includes('@')) setSponsorDone(true);
+  };
+  const submitEmail = () => {
+    if (email.includes('@')) setEmailDone(true);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#FFFDF5', fontFamily: "var(--font-archivo), sans-serif", color: '#161616' }}>
+      <Hero onBuild={scrollToBracket} onSurprise={doAutofill} />
+      <StickyHeader
+        pct={pct} made={made} total={total}
+        canShare={canShare}
+        onReset={doReset} onAutofill={doAutofill}
+        onShare={() => canShare && setShowChampion(true)}
+      />
+      <InstructionBand />
+
+      {/* BRACKET */}
+      <div ref={bracketRef} id="bracket" style={{ overflowX: 'auto', padding: '16px 20px 44px' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', minWidth: 1660, height: 880, margin: '0 auto', width: 'max-content' }}>
+          {/* Left side */}
+          {LEFT_COLS.map((col, ci) => (
+            <BracketColumn
+              key={col.title + ci}
+              title={col.title}
+              matchIds={col.matches}
+              res={res} slots={slots} used={used}
+              side="left" colIdx={ci} colCount={LEFT_COLS.length}
+              isFinal={false}
+              onPick={pick} onSelect={selectSlot} onClear={clearSlot}
+            />
+          ))}
+
+          {/* Center: Final + 3rd */}
+          <CenterColumn
+            res={res} used={used}
+            onPick={pick}
+          />
+
+          {/* Right side */}
+          {RIGHT_COLS.map((col, ci) => (
+            <BracketColumn
+              key={col.title + ci}
+              title={col.title}
+              matchIds={col.matches}
+              res={res} slots={slots} used={used}
+              side="right" colIdx={ci} colCount={RIGHT_COLS.length}
+              isFinal={false}
+              onPick={pick} onSelect={selectSlot} onClear={clearSlot}
+            />
+          ))}
+        </div>
+      </div>
+
+      <SponsorStrip onOpenSponsor={() => { setShowSponsor(true); setSponsorDone(false); }} />
+      <Footer />
+
+      {/* Modals */}
+      {showSponsor && (
+        <SponsorModal
+          done={sponsorDone} onClose={() => setShowSponsor(false)}
+          company={spCompany} name={spName} email={spEmail}
+          onCompany={setSpCompany} onName={setSpName} onEmail={setSpEmail}
+          onSubmit={submitSponsor}
+        />
+      )}
+      {showChampion && (
+        <ChampionModal
+          res={res} champion={champion}
+          emailDone={emailDone} email={email}
+          onEmailChange={e => commit({ email: e.target.value })}
+          onEmailSubmit={submitEmail}
+          onClose={() => setShowChampion(false)}
+          onShare={share}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ─── Hero ───────────────────────────────────────────────────── */
+function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => void }) {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', background: '#FFFDF5', borderBottom: '3px solid #161616' }}>
+      <div style={{ position:'absolute', top:42, left:'14%', width:13, height:13, borderRadius:3, background:'#FFC23C', border:'2px solid #161616' }} className="anim-float-1" />
+      <div style={{ position:'absolute', top:90, left:'23%', width:11, height:11, borderRadius:'50%', background:'#FF3D8B' }} className="anim-float-2" />
+      <div style={{ position:'absolute', top:60, right:'16%', width:15, height:9, borderRadius:2, background:'#14B87A', border:'2px solid #161616' }} className="anim-float-3" />
+      <div style={{ position:'absolute', top:120, right:'24%', width:10, height:10, borderRadius:'50%', background:'#2D6BFF' }} className="anim-float-4" />
+      <div style={{ maxWidth: 920, margin: '0 auto', padding: '42px 20px 46px', textAlign: 'center', position: 'relative' }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#161616', color:'#fff', borderRadius:999, padding:'7px 15px', fontFamily:"var(--font-space-mono), monospace", fontSize:11, letterSpacing:'.08em' }}>
+          <span style={{ fontSize:14 }}>🏆</span> FIFA WORLD CUP 2026 · 48 NATIONS
+        </div>
+        <h1 style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:'clamp(36px,6.4vw,64px)', lineHeight:.96, margin:'18px 0 0', letterSpacing:'-.015em' }}>
+          Predict the entire<br />World Cup.
+        </h1>
+        <p style={{ maxWidth:540, margin:'18px auto 0', fontSize:16.5, lineHeight:1.55, color:'#56524b' }}>
+          Call every knockout match from the Round of 32 to the final whistle. Crown your champion, then dare your friends to beat your bracket.
+        </p>
+        <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap', marginTop:28 }}>
+          <button onClick={onBuild} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:16, color:'#fff', background:'#FF3D8B', border:'3px solid #161616', borderRadius:14, padding:'15px 26px', cursor:'pointer', boxShadow:'4px 4px 0 #161616' }}>
+            ⚽ Build my bracket →
+          </button>
+          <button onClick={onSurprise} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:16, color:'#161616', background:'#fff', border:'3px solid #161616', borderRadius:14, padding:'15px 24px', cursor:'pointer', boxShadow:'4px 4px 0 #FFC23C' }}>
+            🎲 Surprise me
+          </button>
+        </div>
+        <div style={{ display:'flex', gap:18, justifyContent:'center', flexWrap:'wrap', marginTop:22, fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#9b978f' }}>
+          <span>✓ Free &amp; instant</span><span>✓ No signup to play</span><span>✓ 64 picks to glory</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Sticky Header ──────────────────────────────────────────── */
+function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare }: {
+  pct: number; made: number; total: number; canShare: boolean;
+  onReset: () => void; onAutofill: () => void; onShare: () => void;
+}) {
+  return (
+    <div style={{ position:'sticky', top:0, zIndex:30, background:'#2D6BFF', borderBottom:'3px solid #161616', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:8, left:'38%', width:9, height:9, borderRadius:2, background:'#FFC23C' }} className="anim-float-1" />
+      <div style={{ position:'absolute', top:26, left:'55%', width:7, height:7, borderRadius:'50%', background:'#FF3D8B' }} className="anim-float-2" />
+      <div style={{ position:'absolute', top:14, left:'72%', width:11, height:6, borderRadius:2, background:'#14B87A' }} className="anim-float-3" />
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'13px 20px', display:'flex', flexWrap:'wrap', alignItems:'center', gap:16, position:'relative' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:11 }}>
+          <div style={{ width:38, height:38, borderRadius:11, background:'#FFC23C', border:'2.5px solid #161616', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'2px 2px 0 #161616' }}>🏆</div>
+          <div>
+            <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", color:'#fff', fontSize:19, lineHeight:.95, letterSpacing:'-.01em' }}>PICK THE CUP</div>
+            <div style={{ fontFamily:"var(--font-space-mono), monospace", color:'#cfe0ff', fontSize:10, letterSpacing:'.08em', marginTop:2 }}>WORLD CUP 2026 · KNOCKOUT BRACKET</div>
+          </div>
+        </div>
+        <div style={{ flex:1, minWidth:180 }}>
+          <div style={{ background:'rgba(255,255,255,.2)', border:'2px solid #161616', borderRadius:999, height:15, overflow:'hidden' }}>
+            <div style={{ height:'100%', background:'#FFC23C', borderRadius:999, transition:'width .4s ease', width: pct + '%' }} />
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:5, fontFamily:"var(--font-space-mono), monospace", fontSize:10.5, color:'#dce7ff' }}>
+            <span>YOUR BRACKET</span>
+            <span style={{ color:'#fff', fontWeight:700 }}>{made} / {total} PICKS</span>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <button onClick={onReset} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Reset</button>
+          <button onClick={onAutofill} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#FF3D8B', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🎲 Surprise me</button>
+          <button onClick={onShare} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color: canShare ? '#161616' : '#9b978f', background: canShare ? '#FFC23C' : '#efece4', border: `2.5px solid ${canShare ? '#161616' : '#c8c4ba'}`, borderRadius:11, padding:'9px 13px', cursor: canShare ? 'pointer' : 'not-allowed', boxShadow: canShare ? '2px 2px 0 #161616' : 'none' }}>
+            {canShare ? '📲 Share' : '🔒 Share'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Instruction Band ───────────────────────────────────────── */
+function InstructionBand() {
+  return (
+    <div style={{ background:'#fff', borderBottom:'3px solid #161616' }}>
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'14px 20px', display:'flex', flexWrap:'wrap', alignItems:'center', gap:18 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+          <div style={{ width:24, height:24, borderRadius:'50%', background:'#2D6BFF', color:'#fff', fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid #161616' }}>1</div>
+          <div style={{ fontSize:13.5, color:'#56524b', lineHeight:1.4 }}><b style={{ color:'#161616' }}>Fill the Round of 32</b> — pick who comes out of each group from the dropdowns.</div>
+        </div>
+        <div style={{ width:1, height:26, background:'#e0ddd3' }} />
+        <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+          <div style={{ width:24, height:24, borderRadius:'50%', background:'#14B87A', color:'#fff', fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid #161616' }}>2</div>
+          <div style={{ fontSize:13.5, color:'#56524b', lineHeight:1.4 }}><b style={{ color:'#161616' }}>Tap a team</b> to send them through. Winner advances, loser drops out — all the way to the Final. 👉</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Bracket Column ─────────────────────────────────────────── */
+function BracketColumn({ title, matchIds, res, slots, used, side, colIdx, colCount, isFinal, onPick, onSelect, onClear }: {
+  title: string; matchIds: string[];
+  res: Record<string, MatchResult>; slots: Record<string, string>; used: Set<string>;
+  side: 'left' | 'right'; colIdx: number; colCount: number; isFinal: boolean;
+  onPick: (id: string, code: string) => void;
+  onSelect: (key: string, code: string) => void;
+  onClear: (key: string) => void;
+}) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', flex:'none', width:156 }}>
+      <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, color:'#9b978f', textAlign:'center', letterSpacing:'.06em', marginBottom:4, height:14 }}>{title}</div>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+        {matchIds.map((id, p) => {
+          const m = KOby[id];
+          const mr = res[id];
+          // connector logic
+          const BK = '#161616';
+          const conns: React.CSSProperties[] = [];
+          if (side === 'left') {
+            conns.push({ position:'absolute', top:'50%', right:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
+            if (colIdx > 0) conns.push({ position:'absolute', top:'50%', left:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
+            if (p < matchIds.length - 1 && p % 2 === 0) conns.push({ position:'absolute', top:'50%', right:-7, width:2, height:'100%', background:BK });
+          } else {
+            conns.push({ position:'absolute', top:'50%', left:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
+            if (colIdx < colCount - 1) conns.push({ position:'absolute', top:'50%', right:-7, width:11, height:2, background:BK, transform:'translateY(-50%)' });
+            if (p > 0 && p % 2 === 0) conns.push({ position:'absolute', top:'50%', left:-7, width:2, height:'100%', background:BK });
+          }
+          return (
+            <div key={id} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
+              {conns.map((c, i) => <div key={i} style={c} />)}
+              <div style={{ width:148 }}>
+                <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, color:'#c3bfb5', paddingLeft:3, marginBottom:2 }}>{id}</div>
+                <div style={{ border:'2.5px solid #161616', borderRadius:12, background:'#fff', boxShadow:'3px 3px 0 #161616', overflow:'hidden' }}>
+                  <MatchSlot matchId={id} side="a" slot={m.a} mr={mr} slots={slots} used={used} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
+                  <div style={{ height:2, background:'#161616' }} />
+                  <MatchSlot matchId={id} side="b" slot={m.b} mr={mr} slots={slots} used={used} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Match Slot ─────────────────────────────────────────────── */
+function MatchSlot({ matchId, side, slot, mr, slots, used, isFinal, onPick, onSelect, onClear }: {
+  matchId: string; side: 'a' | 'b';
+  slot: { r: string; p: string };
+  mr: MatchResult; slots: Record<string, string>; used: Set<string>; isFinal: boolean;
+  onPick: (id: string, code: string) => void;
+  onSelect: (key: string, code: string) => void;
+  onClear: (key: string) => void;
+}) {
+  const key = matchId + '|' + side;
+  const code = mr[side];
+  const leaf = isLeaf(slot.r);
+
+  if (leaf && !code) {
+    const pool = poolFor(slot.p).filter(c => !used.has(c));
+    const opts = pool.map(c => { const t = team(c); return { code: c, label: t.flag + ' ' + t.name }; });
+    return (
+      <select
+        value=""
+        onChange={e => onSelect(key, e.target.value)}
+        style={{ width:'100%', fontFamily:"var(--font-archivo), sans-serif", fontWeight:700, fontSize: isFinal ? 13 : 10.5, padding: isFinal ? '12px 18px 12px 10px' : '8px 16px 8px 7px', border:'none', background:'#FBFAF6', color:'#8a857c', cursor:'pointer', outline:'none' }}
+      >
+        <option value="">{slotLabel(slot.p)}</option>
+        {opts.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
+      </select>
+    );
+  }
+
+  const resolved = !!code;
+  const isWin  = !!(mr.winner && code && code === mr.winner);
+  const isLose = !!(mr.winner && resolved && code !== mr.winner);
+  const t = resolved ? team(code!) : null;
+  const bothFilled = !!(mr.a && mr.b);
+  const txt  = resolved ? (isFinal ? t!.name : t!.code) : slot.p;
+  const flag = resolved ? t!.flag : '';
+  const editable = leaf && resolved;
+
+  let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding: isFinal ? '13px 14px' : '8px 8px', cursor:(resolved && bothFilled) ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
+  if (isWin && isFinal)  rowStyle = { ...rowStyle, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', color:'#161616', fontWeight:900, boxShadow:'inset 0 0 0 2px #161616' };
+  else if (isWin)        rowStyle = { ...rowStyle, background:'#17C988', color:'#fff', fontWeight:900 };
+  else if (isLose)       rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
+  else if (resolved)     rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
+  else                   rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
+
+  return (
+    <div onClick={resolved && bothFilled ? () => onPick(matchId, code!) : undefined} style={rowStyle}>
+      <span style={{ fontSize: isFinal ? 22 : 15, flex:'none', width: isFinal ? 'auto' : 17 }}>{flag}</span>
+      <span style={{ flex:1, fontSize: isFinal ? 15 : 12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{txt}</span>
+      {isWin && <span style={{ flex:'none', fontSize:12, fontWeight:900 }}>✓</span>}
+      {editable && (
+        <button
+          onClick={e => { e.stopPropagation(); onClear(key); }}
+          style={{ flex:'none', width:17, height:17, border:'1.5px solid #161616', borderRadius:5, background:'#fff', cursor:'pointer', fontSize:8, padding:0 }}
+        >✎</button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Center Column (Final + 3rd) ────────────────────────────── */
+function CenterColumn({ res, used, onPick }: {
+  res: Record<string, MatchResult>; used: Set<string>;
+  onPick: (id: string, code: string) => void;
+}) {
+  const finalRes = res['M104'];
+  const thirdRes = res['M103'];
+  const finalM   = KOby['M104'];
+  const thirdM   = KOby['M103'];
+
+  const FinalSlot = ({ side }: { side: 'a' | 'b' }) => {
+    const code = finalRes?.[side] ?? null;
+    const isWin  = !!(finalRes?.winner && code && code === finalRes.winner);
+    const isLose = !!(finalRes?.winner && code && code !== finalRes.winner);
+    const t = code ? team(code) : null;
+    const both = !!(finalRes?.a && finalRes?.b);
+    let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'13px 14px', cursor:(code && both) ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
+    if (isWin)  rowStyle = { ...rowStyle, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', color:'#161616', fontWeight:900, boxShadow:'inset 0 0 0 2px #161616' };
+    else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
+    else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
+    else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
+    return (
+      <div onClick={code && both ? () => onPick('M104', code) : undefined} style={rowStyle}>
+        <span style={{ fontSize:22, flex:'none' }}>{t?.flag ?? ''}</span>
+        <span style={{ flex:1, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? finalM[side].p}</span>
+        {isWin && <span style={{ flex:'none', fontSize:15, fontWeight:900 }}>✓</span>}
+      </div>
+    );
+  };
+
+  const ThirdSlot = ({ side }: { side: 'a' | 'b' }) => {
+    const code = thirdRes?.[side] ?? null;
+    const isWin  = !!(thirdRes?.winner && code && code === thirdRes.winner);
+    const isLose = !!(thirdRes?.winner && code && code !== thirdRes.winner);
+    const t = code ? team(code) : null;
+    const both = !!(thirdRes?.a && thirdRes?.b);
+    let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'8px 8px', cursor:(code && both) ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
+    if (isWin)  rowStyle = { ...rowStyle, background:'#17C988', color:'#fff', fontWeight:900 };
+    else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
+    else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
+    else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
+    return (
+      <div onClick={code && both ? () => onPick('M103', code) : undefined} style={rowStyle}>
+        <span style={{ fontSize:15, flex:'none', width:17 }}>{t?.flag ?? ''}</span>
+        <span style={{ flex:1, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? (side === 'a' ? thirdM.a.p : thirdM.b.p)}</span>
+        {isWin && <span style={{ flex:'none', fontSize:11, fontWeight:900 }}>✓</span>}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', flex:'none', width:236, justifyContent:'center', gap:18, padding:'0 6px' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, color:'#FF3D8B', letterSpacing:'.08em' }}>🏆 THE FINAL</div>
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f', marginTop:2 }}>M104 · 07/19/2026</div>
+      </div>
+      <div style={{ border:'3px solid #161616', borderRadius:16, background:'linear-gradient(160deg,#FFF6E2,#fff)', boxShadow:'5px 5px 0 #161616', overflow:'hidden' }}>
+        <FinalSlot side="a" />
+        <div style={{ height:2.5, background:'#161616' }} />
+        <FinalSlot side="b" />
+      </div>
+      <div style={{ marginTop:8, textAlign:'center' }}>
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f', marginBottom:4 }}>3RD PLACE · M103</div>
+        <div style={{ border:'2px solid #161616', borderRadius:11, background:'#fff', boxShadow:'2px 2px 0 #161616', overflow:'hidden' }}>
+          <ThirdSlot side="a" />
+          <div style={{ height:1.5, background:'#161616' }} />
+          <ThirdSlot side="b" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Sponsor Strip ──────────────────────────────────────────── */
+const SPONSORS = [
+  { logo:'◇', name:'NIMBUS',  tag:'Official Mobility', bg:'#2D6BFF', lg:'#fff' },
+  { logo:'▲', name:'APEX',    tag:'Energy Partner',    bg:'#FF5A3C', lg:'#fff' },
+  { logo:'★', name:'VOLT',    tag:'Official Drink',    bg:'#FFC23C', lg:'#161616' },
+  { logo:'●', name:'ORBIT',   tag:'Telecom',           bg:'#14B87A', lg:'#fff' },
+  { logo:'✦', name:'LUMA',    tag:'Banking',           bg:'#8134AF', lg:'#fff' },
+  { logo:'◆', name:'PEAK',    tag:'Travel',            bg:'#FF3D8B', lg:'#fff' },
+];
+
+function SponsorStrip({ onOpenSponsor }: { onOpenSponsor: () => void }) {
+  return (
+    <div style={{ background:'#fff', borderTop:'3px solid #161616' }}>
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'34px 20px 38px' }}>
+        <div style={{ textAlign:'center', marginBottom:22 }}>
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, letterSpacing:'.12em', color:'#9b978f' }}>OFFICIAL PARTNERS</div>
+          <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginTop:4 }}>Powering Pick The Cup 2026</div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14 }}>
+          {SPONSORS.map(s => (
+            <div key={s.name} style={{ background:'#FFFDF5', border:'2.5px solid #161616', borderRadius:16, boxShadow:'3px 3px 0 #161616', padding:'16px 12px', display:'flex', flexDirection:'column', alignItems:'center', gap:7 }}>
+              <div style={{ width:44, height:44, borderRadius:11, border:'2px solid #161616', background:s.bg, color:s.lg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontFamily:"var(--font-archivo-black), sans-serif" }}>{s.logo}</div>
+              <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, letterSpacing:'.01em' }}>{s.name}</div>
+              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, color:'#9b978f', textAlign:'center' }}>{s.tag}</div>
+            </div>
+          ))}
+          <div onClick={onOpenSponsor} style={{ border:'2.5px dashed #c8c4ba', borderRadius:16, padding:'16px 12px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, textAlign:'center', cursor:'pointer' }}>
+            <div style={{ fontSize:22 }}>＋</div>
+            <div style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#56524b' }}>Become a<br/>sponsor</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Footer ─────────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <div style={{ background:'#161616', color:'#cfcfcf' }}>
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:20, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+          <div style={{ width:28, height:28, borderRadius:8, background:'#FFC23C', border:'2px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>🏆</div>
+          <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", color:'#fff', fontSize:14 }}>PICK THE CUP</span>
+          <span style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, color:'#8a8f97' }}>· #PickTheCup 2026</span>
+        </div>
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, color:'#8a8f97' }}>⚡ A fan-made prediction game</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Sponsor Modal ──────────────────────────────────────────── */
+function SponsorModal({ done, onClose, company, name, email, onCompany, onName, onEmail, onSubmit }: {
+  done: boolean; onClose: () => void;
+  company: string; name: string; email: string;
+  onCompany: (v: string) => void; onName: (v: string) => void; onEmail: (v: string) => void;
+  onSubmit: () => void;
+}) {
+  const valid = company && name && email.includes('@');
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', width:'100%', maxWidth:460, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+        <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
+        <div style={{ background:'#2D6BFF', borderBottom:'3px solid #161616', padding:'20px 22px', position:'relative', overflow:'hidden' }}>
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, letterSpacing:'.1em', color:'#cfe0ff' }}>PARTNER WITH PICK THE CUP</div>
+          <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:24, color:'#fff', marginTop:4, lineHeight:1.05 }}>Put your brand in front of the whole tournament 🏆</div>
+        </div>
+        {done ? (
+          <div style={{ padding:'32px 22px', textAlign:'center' }}>
+            <div style={{ fontSize:52 }}>🎉</div>
+            <h3 style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:22, margin:'8px 0 6px' }}>Slot reserved!</h3>
+            <p style={{ fontSize:14, color:'#56524b', margin:'0 0 18px', lineHeight:1.5 }}>Thanks {name} — we&apos;ll email {email} within 24h to set up {company}&apos;s placement.</p>
+            <button onClick={onClose} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:14, color:'#fff', background:'#161616', border:'2.5px solid #161616', borderRadius:13, padding:'12px 22px', cursor:'pointer', boxShadow:'3px 3px 0 #FFC23C' }}>Done</button>
+          </div>
+        ) : (
+          <div style={{ padding:'18px 22px 22px' }}>
+            <div style={{ display:'flex', gap:9, marginBottom:16 }}>
+              {[{v:'12.4k',l:'BRACKETS',c:'#2D6BFF'},{v:'86k',l:'MATCH PICKS',c:'#FF3D8B'},{v:'7min',l:'AVG ON PAGE',c:'#14B87A'}].map(s => (
+                <div key={s.l} style={{ flex:1, background:'#fff', border:'2px solid #161616', borderRadius:12, padding:'10px 8px', textAlign:'center', boxShadow:'2px 2px 0 #161616' }}>
+                  <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:18, color:s.c }}>{s.v}</div>
+                  <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, color:'#9b978f' }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:7, marginBottom:16 }}>
+              {[['🪧','Your logo in the partner strip under the bracket'],['📲','"Powered by" lockup on every shared bracket image'],['🎟️','"Matchday presented by" banner between rounds']].map(([icon,text]) => (
+                <div key={text} style={{ display:'flex', gap:9, alignItems:'center', fontSize:13, color:'#161616' }}><span style={{ fontSize:15 }}>{icon}</span>{text}</div>
+              ))}
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#FFF6E2', border:'2.5px solid #161616', borderRadius:14, padding:'12px 16px', marginBottom:16 }}>
+              <div>
+                <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:26, color:'#161616', lineHeight:1 }}>$100<span style={{ fontSize:13, color:'#9b978f', fontFamily:"var(--font-space-mono), monospace" }}> / tournament</span></div>
+                <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#B8860B', marginTop:2 }}>LAUNCH PRICE · LIMITED SLOTS</div>
+              </div>
+              <div style={{ fontSize:30 }}>🤝</div>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
+              <input value={company} onChange={e => onCompany(e.target.value)} placeholder="Company name" style={{ fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+              <div style={{ display:'flex', gap:9 }}>
+                <input value={name} onChange={e => onName(e.target.value)} placeholder="Your name" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+                <input value={email} onChange={e => onEmail(e.target.value)} placeholder="Work email" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+              </div>
+              <button onClick={onSubmit} disabled={!valid} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, color: valid ? '#fff' : '#9b978f', background: valid ? '#14B87A' : '#efece4', border: `2.5px solid ${valid ? '#161616' : '#c8c4ba'}`, borderRadius:13, padding:13, cursor: valid ? 'pointer' : 'not-allowed', boxShadow: valid ? '3px 3px 0 #161616' : 'none' }}>
+                Reserve my slot → $100
+              </button>
+              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, color:'#9b978f', textAlign:'center' }}>Mock checkout — no real payment taken.</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Champion Modal ─────────────────────────────────────────── */
+function ChampionModal({ res, champion, emailDone, email, onEmailChange, onEmailSubmit, onClose, onShare }: {
+  res: Record<string, MatchResult>;
+  champion: { name: string; flag: string } | null;
+  emailDone: boolean; email: string;
+  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onEmailSubmit: () => void;
+  onClose: () => void;
+  onShare: (net: string) => void;
+}) {
+  const rSemiL = res['M101'];
+  const rSemiR = res['M102'];
+  const rFinal = res['M104'];
+
+  const fbox = (code: string | null, variant: 'green'|'dimBig'|'plain'|'out') => {
+    const t = code ? team(code) : null;
+    let boxStyle: React.CSSProperties;
+    let nameStyle: React.CSSProperties = { fontFamily:"var(--font-archivo-black), sans-serif", fontSize:11, color:'#161616' };
+    let check = '';
+    if (variant === 'green') {
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:108, height:40, border:'2.5px solid #161616', borderRadius:11, background:'#17C988', boxShadow:'3px 3px 0 #161616' };
+      nameStyle = { ...nameStyle, fontSize:14, color:'#fff' };
+      check = '✓';
+    } else if (variant === 'dimBig') {
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:108, height:40, border:'2.5px solid #161616', borderRadius:11, background:'#fff', boxShadow:'3px 3px 0 #161616', opacity:.42 };
+      nameStyle = { ...nameStyle, fontSize:14, textDecoration:'line-through' };
+    } else if (variant === 'plain') {
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:70, height:40, border:'2px solid #161616', borderRadius:9, background:'#fff', boxShadow:'2px 2px 0 #161616' };
+    } else {
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:70, height:40, border:'2px solid #161616', borderRadius:9, background:'#fff', opacity:.42 };
+      nameStyle = { ...nameStyle, textDecoration:'line-through' };
+    }
+    return (
+      <div style={boxStyle}>
+        <span style={{ fontSize: variant === 'green' || variant === 'dimBig' ? 17 : 15 }}>{t?.flag ?? ''}</span>
+        <span style={nameStyle}>{t?.code ?? ''}</span>
+        {check && <span style={{ fontSize:12, fontWeight:900, color:'#fff' }}>{check}</span>}
+      </div>
+    );
+  };
+
+  const semiVar = (code: string | null, winner: string | null) => code === winner ? 'plain' : 'out';
+  const finVar  = (code: string | null) => code === rFinal?.winner ? 'green' : 'dimBig';
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
+      {/* Confetti */}
+      <div style={{ position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none' }}>
+        {confettiPieces.map((c, i) => (
+          <div key={i} style={{ position:'absolute', top:-30, left:c.left, width:c.width, height:c.height, background:c.background, borderRadius:c.borderRadius, animation:`conffall ${c.duration}s linear ${c.delay}s infinite`, opacity:.92 }} />
+        ))}
+      </div>
+      <div style={{ position:'relative', width:'100%', maxWidth:430, background:'#FFFDF5', border:'3px solid #161616', borderRadius:24, boxShadow:'8px 8px 0 #161616', padding:22 }}>
+        <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#FF3D8B', letterSpacing:'.1em', fontWeight:700 }}>🎉 BRACKET LOCKED 🎉</div>
+          <h2 style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:26, margin:'8px 0 4px', lineHeight:1.02 }}>Bold call — here&apos;s your road to the title</h2>
+        </div>
+
+        {/* C2 Funnel Card */}
+        <div style={{ margin:'14px 0 16px', background:'#FBF6E8', border:'3px solid #161616', borderRadius:18, boxShadow:'5px 5px 0 #161616', padding:'18px 16px 16px', display:'flex', flexDirection:'column' }}>
+          <div style={{ textAlign:'center', marginBottom:8 }}>
+            <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, letterSpacing:'.14em', color:'#9b978f' }}>FIFA WORLD CUP 2026</div>
+            <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, color:'#FF3D8B', marginTop:2 }}>🏆 MY ROAD TO THE TITLE</div>
+          </div>
+
+          {/* Semi-finalists */}
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, letterSpacing:'.12em', color:'#9b978f', textAlign:'center', marginBottom:8 }}>SEMI-FINALISTS</div>
+          <div style={{ display:'flex' }}>
+            <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
+              {fbox(rSemiL?.a ?? null, semiVar(rSemiL?.a ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
+              {fbox(rSemiL?.b ?? null, semiVar(rSemiL?.b ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
+            </div>
+            <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
+              {fbox(rSemiR?.a ?? null, semiVar(rSemiR?.a ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
+              {fbox(rSemiR?.b ?? null, semiVar(rSemiR?.b ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
+            </div>
+          </div>
+
+          {/* Connectors: semis → finalists */}
+          <div style={{ display:'flex' }}>
+            {[0,1].map(i => (
+              <div key={i} style={{ flex:1, position:'relative', height:18 }}>
+                <div style={{ position:'absolute', top:0, left:'25%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+                <div style={{ position:'absolute', top:0, left:'75%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+                <div style={{ position:'absolute', top:8, left:'25%', right:'25%', height:2, background:'#161616' }} />
+                <div style={{ position:'absolute', top:8, left:'50%', bottom:0, width:2, background:'#161616', transform:'translateX(-50%)' }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Finalists */}
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, letterSpacing:'.12em', color:'#9b978f', textAlign:'center', margin:'6px 0 8px' }}>FINALISTS</div>
+          <div style={{ display:'flex' }}>
+            <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+              {fbox(rSemiL?.winner ?? null, finVar(rSemiL?.winner ?? null) as 'green'|'dimBig')}
+            </div>
+            <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+              {fbox(rSemiR?.winner ?? null, finVar(rSemiR?.winner ?? null) as 'green'|'dimBig')}
+            </div>
+          </div>
+
+          {/* Connectors: finalists → champion */}
+          <div style={{ position:'relative', height:18 }}>
+            <div style={{ position:'absolute', top:0, left:'25%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+            <div style={{ position:'absolute', top:0, left:'75%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+            <div style={{ position:'absolute', top:8, left:'25%', right:'25%', height:2, background:'#161616' }} />
+            <div style={{ position:'absolute', top:8, left:'50%', bottom:0, width:2, background:'#161616', transform:'translateX(-50%)' }} />
+          </div>
+
+          {/* Champion */}
+          <div style={{ display:'flex', justifyContent:'center', marginTop:4 }}>
+            <div style={{ border:'3px solid #161616', borderRadius:14, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', boxShadow:'4px 4px 0 #161616', padding:'10px 18px', display:'flex', alignItems:'center', gap:11, whiteSpace:'nowrap' }}>
+              <span style={{ fontSize:30 }}>{champion?.flag ?? '🏆'}</span>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:21, color:'#161616', lineHeight:1 }}>{champion?.name ?? '—'}</div>
+                <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#6b5a16', letterSpacing:'.1em', marginTop:2 }}>WORLD CHAMPION</div>
+              </div>
+              <span style={{ fontSize:26 }}>👑</span>
+            </div>
+          </div>
+
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'2px solid #161616', paddingTop:11, marginTop:16 }}>
+            <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, color:'#161616' }}>PICK THE CUP</span>
+            <span style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, color:'#9b978f' }}>#PickTheCup</span>
+          </div>
+        </div>
+
+        {/* Share buttons */}
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', textAlign:'center', marginBottom:9 }}>SHARE YOUR BRACKET</div>
+        <div style={{ display:'flex', gap:9, marginBottom:14 }}>
+          <button onClick={() => onShare('instagram')} style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background:'linear-gradient(135deg,#FEDA77,#F58529,#DD2A7B,#8134AF)', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>Instagram</button>
+          <button onClick={() => onShare('x')}         style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#161616', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>𝕏</button>
+          <button onClick={() => onShare('threads')}   style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>@</button>
+          <button onClick={() => onShare('facebook')}  style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#2D6BFF', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>f</button>
+        </div>
+
+        {/* Email capture */}
+        <div style={{ borderTop:'2px dashed #d9d5cc', paddingTop:14 }}>
+          {emailDone ? (
+            <div style={{ textAlign:'center', fontWeight:800, color:'#0E9E68', fontSize:14 }}>✓ Sent! Check your inbox for your bracket.</div>
+          ) : (
+            <>
+              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', marginBottom:8 }}>📬 EMAIL ME MY BRACKET (&amp; JOIN THE LEADERBOARD)</div>
+              <div style={{ display:'flex', gap:8 }}>
+                <input value={email} onChange={onEmailChange} placeholder="you@email.com" style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+                <button onClick={onEmailSubmit} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background:'#14B87A', border:'2.5px solid #161616', borderRadius:12, padding:'11px 15px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Send</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

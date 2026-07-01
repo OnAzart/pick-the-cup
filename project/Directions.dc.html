@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Anton&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  @keyframes dirpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+  @keyframes dirfloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(8deg)}}
+</style>
+</helmet>
+
+<div style="width:max-content;min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#e7e5df;font-family:'Archivo',sans-serif">
+
+  <div style="max-width:1180px;margin-bottom:14px">
+    <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#8a8780;font-weight:700">World Cup 2026 · Prediction Bracket</div>
+    <h1 style="font-family:'Archivo Black',sans-serif;font-size:40px;line-height:1.02;margin:8px 0 10px;color:#1a1714">Three directions for the pick experience</h1>
+    <p style="font-size:15px;line-height:1.55;color:#56524b;max-width:760px;margin:0">Same building blocks in three vibes so you can judge the feel, not the data. Each frame shows the <b>header + progress</b>, the <b>core match-pick card</b> (tap a team to crown it — winner lights up, loser dims &amp; strikes out), a <b>two-into-one bracket join</b>, and the <b>shareable champion card</b>. Pick a direction (or mix elements) and I'll build the full group-stage + knockout app around it.</p>
+  </div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start">
+
+    <!-- ============ DIRECTION 1: STADIUM CONFETTI ============ -->
+    <div style="flex:none;width:430px">
+      <div style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1a1714;margin-bottom:10px">01 · Stadium Confetti <span style="color:#9b978f">— sticker-bold, daylight</span></div>
+      <div style="background:#FFFDF5;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.12)">
+
+        <!-- header -->
+        <div style="position:relative;background:#2D6BFF;padding:18px 20px 22px;overflow:hidden">
+          <div style="position:absolute;top:10px;left:60%;width:10px;height:10px;border-radius:2px;background:#FFC23C;animation:dirfloat 3s ease-in-out infinite"></div>
+          <div style="position:absolute;top:30px;left:82%;width:8px;height:8px;border-radius:50%;background:#FF3D8B;animation:dirfloat 3.6s ease-in-out infinite .3s"></div>
+          <div style="position:absolute;top:50px;left:70%;width:12px;height:6px;border-radius:2px;background:#14B87A;animation:dirfloat 3.2s ease-in-out infinite .6s"></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:9px;background:#FFC23C;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #161616">🏆</div>
+            <div style="font-family:'Archivo Black',sans-serif;color:#fff;font-size:18px;line-height:1;letter-spacing:-.01em">PICK<br>THE CUP</div>
+          </div>
+          <div style="margin-top:16px;background:rgba(255,255,255,.18);border-radius:999px;height:12px;overflow:hidden">
+            <div style="width:38%;height:100%;background:#FFC23C;border-radius:999px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:7px;font-family:'Space Mono',monospace;font-size:11px;color:#dce7ff">
+            <span>YOUR BRACKET</span><span style="color:#fff;font-weight:700">40 / 104 PICKS</span>
+          </div>
+        </div>
+
+        <!-- match card -->
+        <div style="padding:18px 18px 20px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9b978f;margin-bottom:8px;text-transform:uppercase">Round of 16 · Jul 4 · 23:00</div>
+          <div style="background:#fff;border:3px solid #161616;border-radius:18px;box-shadow:5px 5px 0 #161616;overflow:hidden">
+            <!-- winner -->
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#14B87A;position:relative">
+              <span style="font-size:26px">🇦🇷</span>
+              <span style="font-family:'Archivo Black',sans-serif;color:#fff;font-size:19px;flex:1">ARGENTINA</span>
+              <div style="width:28px;height:28px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#14B87A;font-weight:900;font-size:16px;animation:dirpulse 2s ease-in-out infinite">✓</div>
+            </div>
+            <div style="height:3px;background:#161616"></div>
+            <!-- loser -->
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;opacity:.5">
+              <span style="font-size:26px;filter:grayscale(1)">🇭🇷</span>
+              <span style="font-family:'Archivo',sans-serif;font-weight:800;color:#161616;font-size:18px;flex:1;text-decoration:line-through">CROATIA</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-family:'Space Mono',monospace;font-size:11px;color:#14B87A;font-weight:700;margin-top:10px">↑ TAP A TEAM TO ADVANCE THEM</div>
+        </div>
+
+        <!-- bracket join -->
+        <div style="padding:0 18px 20px">
+          <div style="display:flex;align-items:center;gap:0">
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div style="background:#fff;border:2px solid #161616;border-radius:11px;padding:8px 10px;font-weight:800;font-size:13px;display:flex;gap:7px;align-items:center">🇦🇷 ARG</div>
+              <div style="background:#fff;border:2px solid #161616;border-radius:11px;padding:8px 10px;font-weight:800;font-size:13px;display:flex;gap:7px;align-items:center;opacity:.5">🇫🇷 FRA</div>
+            </div>
+            <div style="width:26px;height:46px;border-right:3px solid #161616;border-top:3px solid #161616;border-bottom:3px solid #161616;border-radius:0 12px 12px 0;margin-left:2px"></div>
+            <div style="width:14px;height:3px;background:#161616"></div>
+            <div style="flex:1;background:#FFC23C;border:2px solid #161616;border-radius:11px;padding:10px;font-family:'Archivo Black',sans-serif;font-size:13px;display:flex;gap:7px;align-items:center">🇦🇷 ARG</div>
+          </div>
+        </div>
+
+        <!-- share card -->
+        <div style="padding:0 18px 22px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9b978f;margin-bottom:8px;text-transform:uppercase">Champion share card</div>
+          <div style="aspect-ratio:1;border-radius:18px;background:linear-gradient(135deg,#FF3D8B,#2D6BFF);border:3px solid #161616;box-shadow:5px 5px 0 #161616;position:relative;overflow:hidden;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
+            <div style="position:absolute;top:14px;right:16px;width:9px;height:9px;background:#FFC23C;border-radius:2px"></div>
+            <div style="position:absolute;top:40px;right:40px;width:7px;height:7px;background:#14B87A;border-radius:50%"></div>
+            <div style="font-family:'Space Mono',monospace;font-size:11px;color:#fff;letter-spacing:.1em">MY 2026 CHAMPION</div>
+            <div style="text-align:center">
+              <div style="font-size:64px;line-height:1">🇦🇷</div>
+              <div style="font-family:'Archivo Black',sans-serif;color:#fff;font-size:30px;margin-top:4px;text-shadow:3px 3px 0 #161616">ARGENTINA</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-family:'Archivo Black',sans-serif;color:#FFC23C;font-size:14px;text-shadow:2px 2px 0 #161616">🏆 LIFT THE CUP</span>
+              <span style="font-family:'Space Mono',monospace;font-size:10px;color:#fff">@yourname</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <div style="flex:1;text-align:center;background:#161616;color:#fff;border-radius:11px;padding:10px;font-weight:800;font-size:12px">Instagram</div>
+            <div style="width:40px;text-align:center;background:#fff;border:2px solid #161616;border-radius:11px;padding:10px;font-weight:900;font-size:13px">𝕏</div>
+            <div style="width:40px;text-align:center;background:#fff;border:2px solid #161616;border-radius:11px;padding:10px;font-size:14px">@</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DIRECTION 2: NEON PITCH ============ -->
+    <div style="flex:none;width:430px">
+      <div style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1a1714;margin-bottom:10px">02 · Neon Pitch <span style="color:#9b978f">— dark, electric, slick</span></div>
+      <div style="background:#0B0F14;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.12);font-family:'Space Grotesk',sans-serif">
+
+        <!-- header -->
+        <div style="position:relative;padding:18px 20px 22px;background:radial-gradient(120% 100% at 100% 0%,rgba(43,230,255,.18),transparent 60%),radial-gradient(120% 120% at 0% 100%,rgba(255,73,200,.15),transparent 55%),#0E141B;border-bottom:1px solid #1c2630">
+          <div style="display:flex;align-items:center;gap:11px">
+            <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#B6FF3C,#2BE6FF);display:flex;align-items:center;justify-content:center;font-size:17px">🏆</div>
+            <div style="color:#fff;font-weight:700;font-size:17px;letter-spacing:-.01em">PITCH<span style="color:#B6FF3C">/</span>PREDICT</div>
+          </div>
+          <div style="margin-top:16px;background:#10171f;border:1px solid #1f2a35;border-radius:999px;height:11px;overflow:hidden">
+            <div style="width:38%;height:100%;background:linear-gradient(90deg,#B6FF3C,#2BE6FF);box-shadow:0 0 14px #2BE6FF"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:7px;font-family:'Space Mono',monospace;font-size:11px;color:#5b6b78">
+            <span>BRACKET PROGRESS</span><span style="color:#B6FF3C">40 / 104</span>
+          </div>
+        </div>
+
+        <!-- match card -->
+        <div style="padding:18px 18px 20px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#4b5b68;margin-bottom:8px;text-transform:uppercase">Round of 16 · Jul 4 · 23:00</div>
+          <div style="border-radius:16px;overflow:hidden;border:1px solid #1f2a35;background:#10171f">
+            <div style="display:flex;align-items:center;gap:12px;padding:15px 16px;background:rgba(182,255,60,.08);border:1px solid #B6FF3C;border-radius:15px;box-shadow:0 0 22px rgba(182,255,60,.25) inset;position:relative">
+              <span style="font-size:25px">🇦🇷</span>
+              <span style="color:#fff;font-weight:700;font-size:18px;flex:1">Argentina</span>
+              <div style="width:26px;height:26px;border-radius:50%;background:#B6FF3C;display:flex;align-items:center;justify-content:center;color:#0B0F14;font-weight:700;font-size:15px;box-shadow:0 0 14px #B6FF3C;animation:dirpulse 2s ease-in-out infinite">✓</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:15px 16px;opacity:.4">
+              <span style="font-size:25px;filter:grayscale(1)">🇭🇷</span>
+              <span style="color:#8a99a6;font-weight:600;font-size:17px;flex:1;text-decoration:line-through">Croatia</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-family:'Space Mono',monospace;font-size:11px;color:#2BE6FF;margin-top:10px">TAP TO LOCK YOUR WINNER</div>
+        </div>
+
+        <!-- bracket join -->
+        <div style="padding:0 18px 20px">
+          <div style="display:flex;align-items:center">
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div style="background:#10171f;border:1px solid #2a3744;border-radius:10px;padding:8px 10px;color:#fff;font-weight:600;font-size:13px;display:flex;gap:7px;align-items:center">🇦🇷 ARG</div>
+              <div style="background:#10171f;border:1px solid #2a3744;border-radius:10px;padding:8px 10px;color:#5b6b78;font-weight:600;font-size:13px;display:flex;gap:7px;align-items:center;opacity:.6">🇫🇷 FRA</div>
+            </div>
+            <div style="width:24px;height:44px;border-right:2px solid #2a3744;border-top:2px solid #2a3744;border-bottom:2px solid #2a3744;border-radius:0 11px 11px 0;margin-left:2px"></div>
+            <div style="width:14px;height:2px;background:#2a3744"></div>
+            <div style="flex:1;background:rgba(43,230,255,.1);border:1px solid #2BE6FF;border-radius:10px;padding:9px 10px;color:#fff;font-weight:700;font-size:13px;display:flex;gap:7px;align-items:center;box-shadow:0 0 16px rgba(43,230,255,.25)">🇦🇷 ARG</div>
+          </div>
+        </div>
+
+        <!-- share -->
+        <div style="padding:0 18px 22px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#4b5b68;margin-bottom:8px;text-transform:uppercase">Champion share card</div>
+          <div style="aspect-ratio:1;border-radius:16px;background:radial-gradient(120% 100% at 50% 0%,rgba(43,230,255,.25),transparent 55%),radial-gradient(100% 100% at 50% 100%,rgba(255,73,200,.25),transparent 55%),#070A0E;border:1px solid #1f2a35;position:relative;overflow:hidden;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
+            <div style="font-family:'Space Mono',monospace;font-size:11px;color:#2BE6FF;letter-spacing:.12em">MY 2026 CHAMPION ▸</div>
+            <div style="text-align:center">
+              <div style="font-size:62px;line-height:1;filter:drop-shadow(0 0 20px rgba(182,255,60,.5))">🇦🇷</div>
+              <div style="color:#fff;font-weight:700;font-size:30px;margin-top:6px;letter-spacing:-.01em">ARGENTINA</div>
+              <div style="display:inline-block;margin-top:8px;height:2px;width:80px;background:linear-gradient(90deg,#B6FF3C,#2BE6FF)"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="color:#B6FF3C;font-weight:700;font-size:13px">🏆 CHAMPIONS</span>
+              <span style="font-family:'Space Mono',monospace;font-size:10px;color:#5b6b78">@yourname</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <div style="flex:1;text-align:center;background:linear-gradient(135deg,#B6FF3C,#2BE6FF);color:#0B0F14;border-radius:10px;padding:10px;font-weight:700;font-size:12px">Share to Instagram</div>
+            <div style="width:40px;text-align:center;background:#10171f;border:1px solid #2a3744;color:#fff;border-radius:10px;padding:10px;font-weight:700;font-size:13px">𝕏</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DIRECTION 3: CARNIVAL POSTER ============ -->
+    <div style="flex:none;width:430px">
+      <div style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1a1714;margin-bottom:10px">03 · Carnival Poster <span style="color:#9b978f">— editorial, type-led</span></div>
+      <div style="background:#FBF3E2;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.12);font-family:'DM Sans',sans-serif">
+
+        <!-- header -->
+        <div style="position:relative;padding:18px 20px 20px;background:#E8442B;overflow:hidden">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(0,0,0,.05) 22px 24px)"></div>
+          <div style="position:relative;display:flex;align-items:flex-end;justify-content:space-between">
+            <div style="font-family:'Anton',sans-serif;color:#FBF3E2;font-size:34px;line-height:.84;letter-spacing:.01em">CALL<br>THE CUP</div>
+            <div style="font-family:'Anton',sans-serif;color:#FFC73C;font-size:40px;line-height:.8">26</div>
+          </div>
+          <div style="position:relative;margin-top:16px;background:rgba(0,0,0,.18);height:10px;border-radius:0">
+            <div style="width:38%;height:100%;background:#FFC73C"></div>
+          </div>
+          <div style="position:relative;display:flex;justify-content:space-between;margin-top:6px;font-family:'Space Mono',monospace;font-size:11px;color:#fde3dc">
+            <span>PREDICTED</span><span style="color:#fff;font-weight:700">40/104</span>
+          </div>
+        </div>
+
+        <!-- match card -->
+        <div style="padding:18px 18px 20px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#8a7e68;margin-bottom:9px;text-transform:uppercase;border-bottom:1.5px solid #1A1714;padding-bottom:6px">Round of 16 — Jul 4 · 23:00</div>
+          <div style="border:2px solid #1A1714">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 14px;background:#1A6FB0;position:relative">
+              <span style="font-size:24px">🇦🇷</span>
+              <span style="font-family:'Anton',sans-serif;color:#FBF3E2;font-size:24px;flex:1;letter-spacing:.02em">ARGENTINA</span>
+              <div style="font-family:'Anton',sans-serif;color:#FFC73C;font-size:22px">✓</div>
+            </div>
+            <div style="height:2px;background:#1A1714"></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 14px;background:#FBF3E2;opacity:.55">
+              <span style="font-size:24px;filter:grayscale(1)">🇭🇷</span>
+              <span style="font-family:'Anton',sans-serif;color:#1A1714;font-size:23px;flex:1;letter-spacing:.02em;text-decoration:line-through">CROATIA</span>
+            </div>
+          </div>
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#E8442B;margin-top:9px;font-weight:700">▸ TAP A NATION TO CROWN IT</div>
+        </div>
+
+        <!-- bracket join -->
+        <div style="padding:0 18px 20px">
+          <div style="display:flex;align-items:center">
+            <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+              <div style="background:#FBF3E2;border:2px solid #1A1714;padding:7px 10px;font-family:'Anton',sans-serif;font-size:15px;display:flex;gap:7px;align-items:center;letter-spacing:.02em">🇦🇷 ARG</div>
+              <div style="background:#FBF3E2;border:2px solid #1A1714;padding:7px 10px;font-family:'Anton',sans-serif;font-size:15px;display:flex;gap:7px;align-items:center;letter-spacing:.02em;opacity:.5">🇫🇷 FRA</div>
+            </div>
+            <div style="width:24px;height:42px;border-right:2px solid #1A1714;border-top:2px solid #1A1714;border-bottom:2px solid #1A1714;margin-left:2px"></div>
+            <div style="width:14px;height:2px;background:#1A1714"></div>
+            <div style="flex:1;background:#FFC73C;border:2px solid #1A1714;padding:9px 10px;font-family:'Anton',sans-serif;font-size:15px;display:flex;gap:7px;align-items:center;letter-spacing:.02em">🇦🇷 ARG</div>
+          </div>
+        </div>
+
+        <!-- share -->
+        <div style="padding:0 18px 22px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#8a7e68;margin-bottom:8px;text-transform:uppercase">Champion share card</div>
+          <div style="aspect-ratio:1;background:#1A6FB0;border:2px solid #1A1714;position:relative;overflow:hidden;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 30px,rgba(255,255,255,.05) 30px 33px)"></div>
+            <div style="position:relative;font-family:'Space Mono',monospace;font-size:11px;color:#FFC73C;letter-spacing:.1em">★ MY 2026 CHAMPION</div>
+            <div style="position:relative;text-align:center">
+              <div style="font-size:60px;line-height:1">🇦🇷</div>
+              <div style="font-family:'Anton',sans-serif;color:#FBF3E2;font-size:40px;line-height:.9;margin-top:4px;letter-spacing:.02em">ARGENTINA</div>
+            </div>
+            <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-end">
+              <span style="font-family:'Anton',sans-serif;color:#FFC73C;font-size:20px">CHAMPIONS 🏆</span>
+              <span style="font-family:'Space Mono',monospace;font-size:10px;color:#cfe2f0">@yourname</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <div style="flex:1;text-align:center;background:#1A1714;color:#FBF3E2;padding:10px;font-family:'Anton',sans-serif;font-size:13px;letter-spacing:.03em">INSTAGRAM</div>
+            <div style="width:42px;text-align:center;background:#FBF3E2;border:2px solid #1A1714;padding:10px;font-weight:700;font-size:13px">𝕏</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="max-width:900px;margin-top:30px;font-size:14px;line-height:1.6;color:#56524b">
+    <b style="color:#1a1714">Next:</b> tell me which direction wins (or mix — e.g. "Confetti header + Neon share"), and I'll build the full app: 12 group tables you order, the R32→Final bracket with auto-advancing picks, the confetti + champion trophy moment, progress / reset / autofill, saved-on-reload, and the share flow with email capture.
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

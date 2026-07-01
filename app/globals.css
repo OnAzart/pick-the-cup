@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: #FFFDF5; font-family: var(--font-archivo), sans-serif; color: #161616; }
+
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: #161616; border-radius: 999px; }
+::-webkit-scrollbar-track { background: #e9e6dd; }
+
+@keyframes wcpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+@keyframes wcfloat { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-7px) rotate(10deg)} }
+@keyframes conffall { 0%{transform:translateY(-30px) rotate(0deg)} 100%{transform:translateY(112vh) rotate(720deg)} }
+
+.anim-float-1 { animation: wcfloat 3.4s ease-in-out infinite; }
+.anim-float-2 { animation: wcfloat 3s ease-in-out infinite 0.5s; }
+.anim-float-3 { animation: wcfloat 3.7s ease-in-out infinite 0.3s; }
+.anim-float-4 { animation: wcfloat 3.2s ease-in-out infinite 0.8s; }
+
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23161616'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+}

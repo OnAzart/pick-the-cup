@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#FFFDF5}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:#161616;border-radius:999px}
+  ::-webkit-scrollbar-track{background:#e9e6dd}
+  @keyframes blpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}
+  @keyframes blfloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(10deg)}}
+  @keyframes blrise{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#FFFDF5;font-family:'Archivo',sans-serif;color:#161616">
+
+  <!-- ============ HEADER ============ -->
+  <div style="position:sticky;top:0;z-index:30;background:#161616;border-bottom:3px solid #161616;overflow:hidden">
+    <div style="position:absolute;top:9px;left:42%;width:9px;height:9px;border-radius:2px;background:#FFC23C;animation:blfloat 3s ease-in-out infinite"></div>
+    <div style="position:absolute;top:24px;left:58%;width:7px;height:7px;border-radius:50%;background:#FF3D8B;animation:blfloat 3.5s ease-in-out infinite .4s"></div>
+    <div style="position:absolute;top:13px;left:74%;width:11px;height:6px;border-radius:2px;background:#14B87A;animation:blfloat 3.2s ease-in-out infinite .7s"></div>
+    <div style="max-width:1280px;margin:0 auto;padding:13px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:16px;position:relative">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:38px;height:38px;border-radius:11px;background:#FF3D8B;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:2px 2px 0 #FFC23C">🧪</div>
+        <div>
+          <div style="font-family:'Archivo Black',sans-serif;color:#fff;font-size:19px;line-height:.95;letter-spacing:-.01em">BRACKET LAB</div>
+          <div style="font-family:'Space Mono',monospace;color:#9aa0a8;font-size:10px;letter-spacing:.08em;margin-top:2px">EXPERIMENTS · SHARE · COMPETE · SPONSOR</div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onClick="{{ goShare }}" style="{{ tabShare }}">📲 Share</button>
+        <button onClick="{{ goBoard }}" style="{{ tabBoard }}">🏅 Leaderboard</button>
+        <button onClick="{{ goSponsor }}" style="{{ tabSponsor }}">🤝 Sponsor Slots</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- intro strip -->
+  <div style="background:#FFF6E2;border-bottom:2px solid #161616">
+    <div style="max-width:1280px;margin:0 auto;padding:11px 20px;font-size:13px;color:#56524b;line-height:1.5">
+      <b style="color:#161616">Concept dashboard</b> — three ideas to test before wiring them into the live app. Everything here is interactive mock-up, not connected to your real picks yet.
+    </div>
+  </div>
+
+  <!-- ============ SHARE (PODIUM) ============ -->
+  <sc-if value="{{ showShare }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1000px;margin:0 auto;padding:30px 20px 70px">
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:30px;margin:0;line-height:1">One card. One tap. Done.</h2>
+    <p style="margin:8px 0 0;font-size:14.5px;color:#56524b;max-width:660px;line-height:1.55">No slider, no lock screens, no nagging. The moment a player crowns their winner, they get <b>one clean card built around their podium</b> — gold, silver, bronze — and an easy share row. That’s it.</p>
+
+    <div style="display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:26px;align-items:start;margin-top:26px">
+
+      <!-- the share card -->
+      <div style="border-radius:22px;background:linear-gradient(150deg,#FF3D8B,#2D6BFF);border:3px solid #161616;box-shadow:6px 6px 0 #161616;overflow:hidden;padding:22px 20px;position:relative">
+        <div style="position:absolute;top:16px;right:18px;width:10px;height:10px;background:#FFC23C;border-radius:2px"></div>
+        <div style="position:absolute;top:46px;right:44px;width:8px;height:8px;background:#14B87A;border-radius:50%"></div>
+        <div style="font-family:'Space Mono',monospace;font-size:11px;color:#fff;letter-spacing:.12em;text-align:center;margin-bottom:16px">MY 2026 WORLD CUP PODIUM</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ podium }}" as="p" hint-placeholder-count="3">
+            <div style="{{ p.rowStyle }}">
+              <span style="font-size:25px;flex:none">{{ p.medal }}</span>
+              <span style="font-size:29px;flex:none">{{ p.flag }}</span>
+              <div style="flex:1;min-width:0">
+                <div style="{{ p.nameStyle }}">{{ p.name }}</div>
+                <div style="font-family:'Space Mono',monospace;font-size:9px;color:#7a756c">{{ p.place }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+          <span style="font-family:'Archivo Black',sans-serif;color:#FFC23C;font-size:13px;text-shadow:2px 2px 0 #161616">🏆 #PickTheCup</span>
+          <span style="font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,.85)">⚡ powered by ACME</span>
+        </div>
+      </div>
+
+      <!-- actions + rationale -->
+      <div>
+        <div style="background:#fff;border:3px solid #161616;border-radius:18px;box-shadow:5px 5px 0 #161616;padding:18px">
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9b978f;letter-spacing:.06em;margin-bottom:10px">SHARE IT</div>
+          <button style="width:100%;font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(135deg,#FEDA77,#F58529,#DD2A7B,#8134AF);border:2.5px solid #161616;border-radius:13px;padding:14px;cursor:pointer;box-shadow:3px 3px 0 #161616">📸 Share to Instagram</button>
+          <div style="display:flex;gap:9px;margin-top:10px">
+            <div style="flex:1;text-align:center;font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;color:#fff;background:#161616;border:2.5px solid #161616;border-radius:12px;padding:11px;cursor:pointer">𝕏</div>
+            <div style="flex:1;text-align:center;font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;color:#161616;background:#fff;border:2.5px solid #161616;border-radius:12px;padding:11px;cursor:pointer">@</div>
+            <div style="flex:1;text-align:center;font-family:'Archivo',sans-serif;font-weight:900;font-size:15px;color:#fff;background:#2D6BFF;border:2.5px solid #161616;border-radius:12px;padding:11px;cursor:pointer">f</div>
+          </div>
+          <div style="margin-top:12px;font-family:'Space Mono',monospace;font-size:11px;color:#9b978f">Or just save it — already in your bracket.</div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="font-size:18px">🥇</div>
+            <div style="font-size:13px;color:#56524b;line-height:1.45"><b style="color:#161616">Podium, not just a winner.</b> Champion + runner-up + 3rd gives three flags to argue about — more reasons for friends to reply and post their own.</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="font-size:18px">⚡</div>
+            <div style="font-size:13px;color:#56524b;line-height:1.45"><b style="color:#161616">Frictionless.</b> Shown the instant they finish, one obvious primary action. Nothing is gated or repeated at them.</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="font-size:18px">🤝</div>
+            <div style="font-size:13px;color:#56524b;line-height:1.45"><b style="color:#161616">Sponsor rides along.</b> The “powered by” lockup is baked into the image, so every repost carries it — free off-platform reach.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ LEADERBOARD ============ -->
+  <sc-if value="{{ showBoard }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:880px;margin:0 auto;padding:30px 20px 70px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px">
+      <div>
+        <h2 style="font-family:'Archivo Black',sans-serif;font-size:30px;margin:0;line-height:1">The Leaderboard</h2>
+        <p style="margin:8px 0 0;font-size:14.5px;color:#56524b;max-width:560px;line-height:1.55">Emails come in masked. Points are <b>weighted by round</b> — calling a R32 upset is worth less than nailing the Final. This is what turns a one-and-done into a daily check-in.</p>
+      </div>
+      <div style="background:#161616;color:#fff;border-radius:13px;padding:11px 15px;box-shadow:3px 3px 0 #FFC23C">
+        <div style="font-family:'Space Mono',monospace;font-size:9.5px;color:#9aa0a8;letter-spacing:.06em">PLAYERS</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1">12,408</div>
+      </div>
+    </div>
+
+    <!-- scoring legend -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 16px">
+      <div style="background:#fff;border:2px solid #161616;border-radius:999px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">R32 <span style="color:#9b978f">1pt</span></div>
+      <div style="background:#fff;border:2px solid #161616;border-radius:999px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">R16 <span style="color:#9b978f">2pt</span></div>
+      <div style="background:#fff;border:2px solid #161616;border-radius:999px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">QF <span style="color:#9b978f">4pt</span></div>
+      <div style="background:#fff;border:2px solid #161616;border-radius:999px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">SF <span style="color:#9b978f">8pt</span></div>
+      <div style="background:#FFF6E2;border:2px solid #161616;border-radius:999px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">FINAL <span style="color:#B8860B">12pt</span></div>
+      <div style="background:#EAF9F1;border:2px solid #161616;border-radius:999px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap">CHAMP <span style="color:#0E9E68">20pt</span></div>
+    </div>
+
+    <!-- table -->
+    <div style="background:#fff;border:3px solid #161616;border-radius:18px;box-shadow:5px 5px 0 #161616;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;background:#161616;color:#9aa0a8;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em">
+        <div style="width:38px">RANK</div>
+        <div style="flex:1">PLAYER</div>
+        <div style="width:60px;text-align:center">CHAMP</div>
+        <div style="width:54px;text-align:right">PTS</div>
+      </div>
+      <sc-for list="{{ board }}" as="r" hint-placeholder-count="9">
+        <div style="{{ r.rowStyle }}">
+          <div style="width:38px;font-family:'Archivo Black',sans-serif;font-size:15px;color:{{ r.rankColor }}">{{ r.rankText }}</div>
+          <div style="flex:1;display:flex;align-items:center;gap:9px;min-width:0">
+            <span style="font-size:18px">{{ r.avatar }}</span>
+            <span style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.email }}</span>
+            <span style="{{ r.youStyle }}">{{ r.youTag }}</span>
+          </div>
+          <div style="width:60px;text-align:center;font-size:18px">{{ r.champ }}</div>
+          <div style="width:54px;text-align:right;font-family:'Archivo Black',sans-serif;font-size:17px">{{ r.pts }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:16px;background:#fff;border:2px dashed #c8c4ba;border-radius:14px;padding:16px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+      <div style="flex:1;min-width:200px">
+        <div style="font-family:'Archivo Black',sans-serif;font-size:15px">Join the board</div>
+        <div style="font-size:12.5px;color:#56524b;margin-top:2px">Drop your email in the share step — you’ll appear masked, like <span style="font-family:'Space Mono',monospace">a••••@gmail.com</span>.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input placeholder="you@email.com" style="font-family:'Archivo',sans-serif;font-size:13px;padding:10px 12px;border:2.5px solid #161616;border-radius:11px;outline:none;width:170px"/>
+        <div style="display:flex;align-items:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:#fff;background:#14B87A;border:2.5px solid #161616;border-radius:11px;padding:0 15px;box-shadow:2px 2px 0 #161616;cursor:pointer">Enter</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SPONSOR SLOTS ============ -->
+  <sc-if value="{{ showSponsor }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1280px;margin:0 auto;padding:30px 20px 70px">
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:30px;margin:0;line-height:1">Where sponsors live</h2>
+    <p style="margin:8px 0 0;font-size:14.5px;color:#56524b;max-width:720px;line-height:1.55">The bracket already scrolls sideways, so fixed <b>side rails</b> frame it without stealing space — TrustMRR-style logo cards. Plus a thin <b>between-rounds strip</b> and the <b>“powered by”</b> lockup that rides on every shared card. Below is the bracket page with all three slots mocked in.</p>
+
+    <!-- mock layout: rails + bracket -->
+    <div style="margin-top:22px;border:3px solid #161616;border-radius:20px;overflow:hidden;box-shadow:6px 6px 0 #161616;background:#FFFDF5">
+      <!-- faux browser bar -->
+      <div style="background:#161616;padding:9px 14px;display:flex;align-items:center;gap:7px">
+        <div style="width:11px;height:11px;border-radius:50%;background:#FF5A3C"></div>
+        <div style="width:11px;height:11px;border-radius:50%;background:#FFC23C"></div>
+        <div style="width:11px;height:11px;border-radius:50%;background:#14B87A"></div>
+        <div style="flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:10px;color:#9aa0a8">pickthecup.app / bracket</div>
+      </div>
+
+      <div style="display:flex;align-items:stretch;background:#FFFDF5">
+        <!-- LEFT RAIL -->
+        <div style="flex:none;width:150px;background:#F4F1E8;border-right:2px solid #161616;padding:14px 11px;display:flex;flex-direction:column;gap:11px">
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:#9b978f;letter-spacing:.08em;text-align:center">OFFICIAL PARTNERS</div>
+          <sc-for list="{{ railLeft }}" as="s" hint-placeholder-count="3">
+            <div style="{{ s.style }}">
+              <div style="{{ s.logoStyle }}">{{ s.logo }}</div>
+              <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;text-align:center;color:#161616">{{ s.name }}</div>
+              <div style="font-family:'Space Mono',monospace;font-size:8px;color:#9b978f;text-align:center">{{ s.tag }}</div>
+            </div>
+          </sc-for>
+          <div style="margin-top:auto;border:2px dashed #c8c4ba;border-radius:12px;padding:14px 8px;text-align:center;font-family:'Space Mono',monospace;font-size:9px;color:#bdb8ae;line-height:1.5">YOUR<br>LOGO<br>HERE</div>
+        </div>
+
+        <!-- CENTER: bracket-ish -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <!-- between-rounds strip -->
+          <div style="background:#2D6BFF;border-bottom:2px solid #161616;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:10px">
+            <span style="font-family:'Space Mono',monospace;font-size:9px;color:#cfe0ff;letter-spacing:.08em">MATCHDAY PRESENTED BY</span>
+            <span style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#fff;letter-spacing:.02em">◇ NIMBUS</span>
+          </div>
+          <div style="padding:18px 16px;overflow-x:auto">
+            <div style="display:flex;gap:10px;align-items:center;width:max-content;margin:0 auto">
+              <sc-for list="{{ miniCols }}" as="col" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:10px;justify-content:center">
+                  <sc-for list="{{ col.cards }}" as="mc" hint-placeholder-count="4">
+                    <div style="width:108px;border:2px solid #161616;border-radius:9px;background:#fff;box-shadow:2px 2px 0 #161616;overflow:hidden">
+                      <div style="{{ mc.topStyle }}"><span>{{ mc.topFlag }}</span><span style="flex:1">{{ mc.top }}</span><span>{{ mc.topCk }}</span></div>
+                      <div style="height:1.5px;background:#161616"></div>
+                      <div style="{{ mc.botStyle }}"><span>{{ mc.botFlag }}</span><span style="flex:1">{{ mc.bot }}</span><span>{{ mc.botCk }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-left:6px">
+                <div style="font-family:'Archivo Black',sans-serif;font-size:11px;color:#FF3D8B">🏆 FINAL</div>
+                <div style="width:120px;border:2.5px solid #161616;border-radius:11px;background:linear-gradient(160deg,#FFF6E2,#fff);box-shadow:3px 3px 0 #161616;overflow:hidden;margin-top:6px">
+                  <div style="display:flex;align-items:center;gap:6px;padding:9px 9px;background:#14B87A;color:#fff;font-weight:900;font-size:12px"><span>🇧🇷</span><span style="flex:1">BRA</span><span>✓</span></div>
+                  <div style="height:2px;background:#161616"></div>
+                  <div style="display:flex;align-items:center;gap:6px;padding:9px 9px;font-weight:800;font-size:12px;opacity:.45;text-decoration:line-through"><span>🇫🇷</span><span style="flex:1">FRA</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- footer powered-by -->
+          <div style="border-top:2px solid #161616;background:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:8px">
+            <span style="font-family:'Space Mono',monospace;font-size:9px;color:#9b978f;letter-spacing:.08em">⚡ POWERED BY</span>
+            <span style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#161616">ACME SPORTS</span>
+          </div>
+        </div>
+
+        <!-- RIGHT RAIL -->
+        <div style="flex:none;width:150px;background:#F4F1E8;border-left:2px solid #161616;padding:14px 11px;display:flex;flex-direction:column;gap:11px">
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:#9b978f;letter-spacing:.08em;text-align:center">FAN ZONE</div>
+          <sc-for list="{{ railRight }}" as="s" hint-placeholder-count="3">
+            <div style="{{ s.style }}">
+              <div style="{{ s.logoStyle }}">{{ s.logo }}</div>
+              <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;text-align:center;color:#161616">{{ s.name }}</div>
+              <div style="font-family:'Space Mono',monospace;font-size:8px;color:#9b978f;text-align:center">{{ s.tag }}</div>
+            </div>
+          </sc-for>
+          <div style="margin-top:auto;background:#FF3D8B;border:2px solid #161616;border-radius:12px;padding:12px 8px;text-align:center;color:#fff;box-shadow:2px 2px 0 #161616">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:13px;line-height:1">AD</div>
+            <div style="font-family:'Space Mono',monospace;font-size:8px;margin-top:3px">300×600</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- slot inventory -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px">
+      <div style="background:#fff;border:2.5px solid #161616;border-radius:16px;box-shadow:3px 3px 0 #161616;padding:16px">
+        <div style="font-size:22px">🪧</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:15px;margin-top:6px">Side rails</div>
+        <div style="font-size:12.5px;color:#56524b;margin-top:4px;line-height:1.45">Always-visible logo cards flanking the bracket. Premium, non-intrusive, scroll-static.</div>
+      </div>
+      <div style="background:#fff;border:2.5px solid #161616;border-radius:16px;box-shadow:3px 3px 0 #161616;padding:16px">
+        <div style="font-size:22px">🎟️</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:15px;margin-top:6px">Between-rounds strip</div>
+        <div style="font-size:12.5px;color:#56524b;margin-top:4px;line-height:1.45">“Matchday presented by…” banner — one headline sponsor, high attention.</div>
+      </div>
+      <div style="background:#fff;border:2.5px solid #161616;border-radius:16px;box-shadow:3px 3px 0 #161616;padding:16px">
+        <div style="font-size:22px">📲</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:15px;margin-top:6px">Powered-by on shares</div>
+        <div style="font-size:12.5px;color:#56524b;margin-top:4px;line-height:1.45">Lockup baked into every champion / bracket card — free off-platform reach.</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860}}">
+class Component extends DCLogic {
+  state = { view:'share' };
+
+  setView(v){ this.setState({view:v}); }
+
+  tab(active){ return {fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:'12.5px',border:'2.5px solid '+(active?'#fff':'#3a3a3a'),borderRadius:'999px',padding:'8px 14px',cursor:'pointer',background:active?'#fff':'transparent',color:active?'#161616':'#cfcfcf',boxShadow:active?'2px 2px 0 #FFC23C':'none'}; }
+
+  renderVals(){
+    const view=this.state.view;
+
+    // ---- share podium ----
+    const medalRow=(bg)=>({display:'flex',alignItems:'center',gap:'11px',background:bg,border:'2px solid #161616',borderRadius:'12px',padding:'9px 12px'});
+    const pName=(big)=>({fontFamily:"'Archivo Black',sans-serif",color:'#161616',fontSize:big?'18px':'15px',lineHeight:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'});
+    const podium=[
+      {medal:'🥇',flag:'🇧🇷',name:'Brazil',place:'CHAMPION',rowStyle:medalRow('#FFE08A'),nameStyle:pName(true)},
+      {medal:'🥈',flag:'🇫🇷',name:'France',place:'RUNNER-UP',rowStyle:medalRow('#EAECEF'),nameStyle:pName(false)},
+      {medal:'🥉',flag:'🇦🇷',name:'Argentina',place:'THIRD PLACE',rowStyle:medalRow('#F2D9B8'),nameStyle:pName(false)}
+    ];
+
+    // ---- leaderboard ----
+    const raw=[
+      {e:'g••••@gmail.com',av:'🦁',champ:'🇧🇷',pts:184},
+      {e:'m••••@outlook.com',av:'🐉',champ:'🇫🇷',pts:176},
+      {e:'s••••@yahoo.com',av:'🦅',champ:'🇦🇷',pts:171},
+      {e:'k••••@gmail.com',av:'🐺',champ:'🇧🇷',pts:168},
+      {e:'a••••@gmail.com',av:'🐯',champ:'🇪🇸',pts:159,you:true},
+      {e:'r••••@proton.me',av:'🦈',champ:'🇧🇷',pts:152},
+      {e:'j••••@gmail.com',av:'🐻',champ:'🇵🇹',pts:147},
+      {e:'l••••@icloud.com',av:'🦊',champ:'🇳🇱',pts:141},
+      {e:'t••••@gmail.com',av:'🐸',champ:'🇩🇪',pts:138}
+    ];
+    const board=raw.map((r,i)=>{
+      const rank=i+1;
+      const medal= rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':String(rank);
+      const rowStyle={display:'flex',alignItems:'center',gap:'12px',padding:'12px 16px',
+        borderTop: i===0?'none':'2px solid #f0ede4',
+        background: r.you?'#FFF6E2':'#fff'};
+      return {rankText:medal, rankColor: rank<=3?'#161616':'#9b978f',
+        avatar:r.av, email:r.e, champ:r.champ, pts:r.pts, rowStyle,
+        youTag: r.you?'YOU':'', youStyle: r.you?{fontFamily:"'Space Mono',monospace",fontSize:'9px',fontWeight:700,background:'#FF3D8B',color:'#fff',borderRadius:'999px',padding:'2px 7px',flex:'none'}:{display:'none'}};
+    });
+
+    // ---- sponsor rails ----
+    const mkSlot=(logo,name,tag,bg,lg)=>({logo,name,tag,
+      style:{background:'#fff',border:'2px solid #161616',borderRadius:'12px',boxShadow:'2px 2px 0 #161616',padding:'12px 8px',display:'flex',flexDirection:'column',alignItems:'center',gap:'5px'},
+      logoStyle:{width:'40px',height:'40px',borderRadius:'10px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'19px',color:lg||'#fff',fontFamily:"'Archivo Black',sans-serif"}});
+    const railLeft=[ mkSlot('◇','NIMBUS','Mobility','#2D6BFF'), mkSlot('▲','APEX','Energy','#FF5A3C'), mkSlot('●','ORBIT','Telecom','#14B87A') ];
+    const railRight=[ mkSlot('★','VOLT','Drinks','#FFC23C','#161616'), mkSlot('✦','LUMA','Banking','#8134AF'), mkSlot('◆','PEAK','Travel','#FF3D8B') ];
+
+    // mini bracket cards
+    const mc=(tf,t,tw,bf,b,bw)=>{
+      const win={display:'flex',alignItems:'center',gap:'5px',padding:'6px 7px',background:'#14B87A',color:'#fff',fontWeight:900,fontSize:'10px'};
+      const out={display:'flex',alignItems:'center',gap:'5px',padding:'6px 7px',color:'#161616',fontWeight:700,fontSize:'10px',opacity:.45,textDecoration:'line-through'};
+      return {topFlag:tf,top:t,topCk:tw?'✓':'',topStyle:tw?win:out, botFlag:bf,bot:b,botCk:bw?'✓':'',botStyle:bw?win:out};
+    };
+    const miniCols=[
+      {cards:[mc('🇧🇷','BRA',1,'🇨🇲','CMR',0),mc('🇦🇷','ARG',1,'🇨🇭','SUI',0),mc('🇫🇷','FRA',1,'🇲🇦','MAR',0),mc('🇪🇸','ESP',1,'🇭🇷','CRO',0)]},
+      {cards:[mc('🇧🇷','BRA',1,'🇦🇷','ARG',0),mc('🇫🇷','FRA',1,'🇪🇸','ESP',0)]},
+      {cards:[mc('🇧🇷','BRA',1,'🇫🇷','FRA',0)]}
+    ];
+
+    return {
+      goShare:()=>this.setView('share'), goBoard:()=>this.setView('board'), goSponsor:()=>this.setView('sponsor'),
+      tabShare:this.tab(view==='share'), tabBoard:this.tab(view==='board'), tabSponsor:this.tab(view==='sponsor'),
+      showShare: view==='share', showBoard: view==='board', showSponsor: view==='sponsor',
+      podium, board, railLeft, railRight, miniCols
+    };
+  }
+}
+</script>
+</body>
+</html>
