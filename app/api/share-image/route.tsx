@@ -4,7 +4,9 @@ import { TEAMS } from '@/app/data';
 
 export const dynamic = 'force-dynamic';
 
-const size = { width: 1080, height: 820 };
+// Standard OG/Twitter card ratio (1.91:1) — a non-standard ratio gets
+// pillarboxed/cropped by platform link-preview frames (iMessage, X, etc.).
+const size = { width: 1200, height: 630 };
 
 function team(code: string | null) {
   if (!code) return null;
@@ -22,20 +24,20 @@ function TeamChip({ code, state }: { code: string | null; state: 'active' | 'out
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
-        width: 190,
-        height: 74,
-        border: `4px solid #161616`,
-        borderRadius: 18,
+        gap: 8,
+        width: 148,
+        height: 54,
+        border: '3px solid #161616',
+        borderRadius: 14,
         background: '#fff',
         opacity: isOut ? 0.42 : 1,
-        boxShadow: isOut ? 'none' : '5px 5px 0 #161616',
+        boxShadow: isOut ? 'none' : '4px 4px 0 #161616',
       }}
     >
-      <span style={{ fontSize: 30 }}>{t?.flag ?? ''}</span>
+      <span style={{ fontSize: 22 }}>{t?.flag ?? ''}</span>
       <span
         style={{
-          fontSize: 24,
+          fontSize: 18,
           fontWeight: 900,
           color: '#161616',
           textDecoration: isOut ? 'line-through' : 'none',
@@ -55,26 +57,26 @@ function FinalistChip({ code, isChampion }: { code: string | null; isChampion: b
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
-        width: 190,
-        height: 74,
-        border: '4px solid #161616',
-        borderRadius: 18,
+        gap: 8,
+        width: 148,
+        height: 54,
+        border: '3px solid #161616',
+        borderRadius: 14,
         background: isChampion ? '#17C988' : '#fff',
         opacity: isChampion ? 1 : 0.42,
-        boxShadow: isChampion ? '5px 5px 0 #161616' : 'none',
+        boxShadow: isChampion ? '4px 4px 0 #161616' : 'none',
       }}
     >
-      <span style={{ fontSize: 30 }}>{t?.flag ?? ''}</span>
-      <span style={{ fontSize: 24, fontWeight: 900, color: isChampion ? '#fff' : '#161616' }}>{t?.code ?? ''}</span>
+      <span style={{ fontSize: 22 }}>{t?.flag ?? ''}</span>
+      <span style={{ fontSize: 18, fontWeight: 900, color: isChampion ? '#fff' : '#161616' }}>{t?.code ?? ''}</span>
     </div>
   );
 }
 
 function Connector() {
   return (
-    <div style={{ display: 'flex', width: 190, justifyContent: 'center' }}>
-      <div style={{ display: 'flex', width: 4, height: 26, background: '#161616' }} />
+    <div style={{ display: 'flex', width: 148, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', width: 3, height: 14, background: '#161616' }} />
     </div>
   );
 }
@@ -109,43 +111,43 @@ export async function GET(req: NextRequest) {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            width: 960,
-            height: 740,
+            width: 1120,
+            height: 566,
             background: '#FBF6E8',
-            border: '8px solid #161616',
-            borderRadius: 40,
-            padding: '44px 46px',
+            border: '6px solid #161616',
+            borderRadius: 30,
+            padding: '22px 46px',
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ display: 'flex', fontSize: 22, letterSpacing: 4, color: '#9b978f' }}>FIFA WORLD CUP 2026</div>
-            <div style={{ display: 'flex', fontSize: 46, fontWeight: 900, color: '#FF3D8B', marginTop: 6 }}>
+            <div style={{ display: 'flex', fontSize: 16, letterSpacing: 3, color: '#9b978f' }}>FIFA WORLD CUP 2026</div>
+            <div style={{ display: 'flex', fontSize: 30, fontWeight: 900, color: '#FF3D8B', marginTop: 4 }}>
               🏆 MY ROAD TO THE TITLE
             </div>
           </div>
 
           {hasFullCard ? (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <div style={{ display: 'flex', fontSize: 20, letterSpacing: 4, color: '#9b978f', justifyContent: 'center', marginTop: 40 }}>
+              <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginTop: 32 }}>
                 SEMI-FINALISTS
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 16 }}>
-                <div style={{ display: 'flex', gap: 16 }}>
+                <div style={{ display: 'flex', gap: 14 }}>
                   <TeamChip code={semiLA} state={semiLA === semiLW ? 'active' : 'out'} />
                   <TeamChip code={semiLB} state={semiLB === semiLW ? 'active' : 'out'} />
                 </div>
-                <div style={{ display: 'flex', gap: 16 }}>
+                <div style={{ display: 'flex', gap: 14 }}>
                   <TeamChip code={semiRA} state={semiRA === semiRW ? 'active' : 'out'} />
                   <TeamChip code={semiRB} state={semiRB === semiRW ? 'active' : 'out'} />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 8 }}>
                 <Connector />
                 <Connector />
               </div>
 
-              <div style={{ display: 'flex', fontSize: 20, letterSpacing: 4, color: '#9b978f', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginTop: 6 }}>
                 FINALISTS
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 16 }}>
@@ -153,8 +155,8 @@ export async function GET(req: NextRequest) {
                 <FinalistChip code={semiRW} isChampion={semiRW === champCode} />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
-                <div style={{ display: 'flex', width: 4, height: 26, background: '#161616' }} />
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                <div style={{ display: 'flex', width: 3, height: 14, background: '#161616' }} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -162,22 +164,22 @@ export async function GET(req: NextRequest) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 20,
+                    gap: 14,
                     background: 'linear-gradient(135deg,#FFD23C,#FFB01F)',
-                    border: '6px solid #161616',
-                    borderRadius: 24,
-                    padding: '20px 40px',
-                    boxShadow: '6px 6px 0 #161616',
+                    border: '4px solid #161616',
+                    borderRadius: 18,
+                    padding: '10px 26px',
+                    boxShadow: '4px 4px 0 #161616',
                   }}
                 >
-                  <span style={{ fontSize: 56 }}>{champ?.flag ?? '🏆'}</span>
+                  <span style={{ fontSize: 34 }}>{champ?.flag ?? '🏆'}</span>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', fontSize: 40, fontWeight: 900, color: '#161616' }}>{champ?.name ?? '—'}</div>
-                    <div style={{ display: 'flex', fontSize: 18, letterSpacing: 3, color: '#6b5a16', marginTop: 2 }}>
+                    <div style={{ display: 'flex', fontSize: 24, fontWeight: 900, color: '#161616' }}>{champ?.name ?? '—'}</div>
+                    <div style={{ display: 'flex', fontSize: 12, letterSpacing: 2, color: '#6b5a16', marginTop: 1 }}>
                       WORLD CHAMPION
                     </div>
                   </div>
-                  <span style={{ fontSize: 44 }}>👑</span>
+                  <span style={{ fontSize: 28 }}>👑</span>
                 </div>
               </div>
             </div>
@@ -188,7 +190,7 @@ export async function GET(req: NextRequest) {
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 40,
+                fontSize: 32,
                 fontWeight: 900,
                 color: '#161616',
                 textAlign: 'center',
@@ -203,13 +205,13 @@ export async function GET(req: NextRequest) {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              borderTop: '3px solid #161616',
-              paddingTop: 20,
+              borderTop: '2px solid #161616',
+              paddingTop: 10,
               marginTop: 'auto',
             }}
           >
-            <span style={{ display: 'flex', fontSize: 26, fontWeight: 900, color: '#161616' }}>PICK THE CUP</span>
-            <span style={{ display: 'flex', fontSize: 20, color: '#9b978f' }}>#PickTheCup</span>
+            <span style={{ display: 'flex', fontSize: 18, fontWeight: 900, color: '#161616' }}>PICK THE CUP</span>
+            <span style={{ display: 'flex', fontSize: 14, color: '#9b978f' }}>#PickTheCup</span>
           </div>
         </div>
       </div>
