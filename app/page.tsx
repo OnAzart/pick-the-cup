@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
 import { BracketApp } from "./BracketApp";
 
+const IMAGE_PARAMS = ['champion', 'semiLA', 'semiLB', 'semiLW', 'semiRA', 'semiRB', 'semiRW'] as const;
+
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ champion?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }): Promise<Metadata> {
-  const { champion } = await searchParams;
-  if (!champion) return {};
-  const imageUrl = `/api/share-image?champion=${encodeURIComponent(champion)}`;
+  const params = await searchParams;
+  if (!params.champion) return {};
+  const query = new URLSearchParams();
+  for (const key of IMAGE_PARAMS) {
+    if (params[key]) query.set(key, params[key]!);
+  }
+  const imageUrl = `/api/share-image?${query.toString()}`;
   return {
     openGraph: { images: [imageUrl] },
     twitter: { images: [imageUrl] },

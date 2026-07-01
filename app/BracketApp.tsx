@@ -162,20 +162,26 @@ export function BracketApp() {
       ? `My 2026 World Cup champion: ${champName}! 🏆 Build yours #PickTheCup`
       : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
     const baseUrl = typeof window !== 'undefined' ? window.location.href.split('#')[0].split('?')[0] : 'https://pick-the-cup.vercel.app';
-    // Personalized share image: /api/share-image renders the actual
-    // predicted champion (via page.tsx's generateMetadata reading
-    // ?champion=) instead of the generic branded card — "I picked Brazil
-    // to win it all" is what's actually shareable, not a static logo card.
-    // Cache-bust too, so X/Facebook/Threads always do a fresh og:image scrape.
-    const params = new URLSearchParams({ share: Date.now().toString(36) });
-    if (champCode) params.set('champion', champCode);
-    const url = `${baseUrl}?${params.toString()}`;
-    const shareImageUrl = champCode ? `/api/share-image?champion=${encodeURIComponent(champCode)}` : '/opengraph-image';
 
-    // Instagram has no web share-intent URL, so this used to just open
-    // instagram.com with nothing attached. Attach the real share image via
-    // the native OS share sheet when file-sharing is supported (mobile);
-    // fall back to a link-only share, then to copying the link.
+    // Personalized share image: /api/share-image renders the full "road to
+    // the title" card (semi-finalists, finalists, champion) — matches the
+    // in-app champion modal — instead of a generic branded card. Cache-bust
+    // too, so X/Threads always do a fresh og:image scrape.
+    const params = new URLSearchParams({ share: Date.now().toString(36) });
+    const rSemiL = res['M101'];
+    const rSemiR = res['M102'];
+    if (champCode && rSemiL?.a && rSemiL?.b && rSemiL?.winner && rSemiR?.a && rSemiR?.b && rSemiR?.winner) {
+      params.set('semiLA', rSemiL.a);
+      params.set('semiLB', rSemiL.b);
+      params.set('semiLW', rSemiL.winner);
+      params.set('semiRA', rSemiR.a);
+      params.set('semiRB', rSemiR.b);
+      params.set('semiRW', rSemiR.winner);
+      params.set('champion', champCode);
+    }
+    const url = `${baseUrl}?${params.toString()}`;
+
+    /* Instagram disabled for now — not working.
     if (net === 'instagram') {
       if (typeof navigator !== 'undefined' && navigator.share) {
         try {
@@ -186,8 +192,8 @@ export function BracketApp() {
             await navigator.share({ title: 'Pick The Cup', text, files: [file] });
             return;
           }
-        } catch { /* fall through to link-only share */ }
-        try { await navigator.share({ title: 'Pick The Cup', text, url }); return; } catch { /* fall through to clipboard */ }
+        } catch {}
+        try { await navigator.share({ title: 'Pick The Cup', text, url }); return; } catch {}
       }
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         try {
@@ -199,6 +205,7 @@ export function BracketApp() {
       }
       return;
     }
+    */
 
     setShareNotice('');
     const enc = encodeURIComponent(text);
@@ -208,7 +215,9 @@ export function BracketApp() {
     // Threads' intent only takes one `text` param, so fold the link in —
     // it still unfurls the og:image once posted.
     else if (net === 'threads') href = `https://www.threads.net/intent/post?text=${encodeURIComponent(text + ' ' + url)}`;
+    /* Facebook disabled for now — not working.
     else if (net === 'facebook') href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${enc}`;
+    */
     try { window.open(href, '_blank', 'noopener'); } catch {}
   };
 
@@ -885,10 +894,9 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
         {/* Share buttons */}
         <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', textAlign:'center', marginBottom:9 }}>SHARE YOUR BRACKET</div>
         <div style={{ display:'flex', gap:9, marginBottom:14 }}>
-          <button onClick={() => onShare('instagram')} style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background:'linear-gradient(135deg,#FEDA77,#F58529,#DD2A7B,#8134AF)', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>Instagram</button>
-          <button onClick={() => onShare('x')}         style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#161616', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>𝕏</button>
-          <button onClick={() => onShare('threads')}   style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>@</button>
-          <button onClick={() => onShare('facebook')}  style={{ width:50, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#2D6BFF', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>f</button>
+          {/* Instagram & Facebook disabled for now — not working */}
+          <button onClick={() => onShare('x')}         style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#161616', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>𝕏 Post</button>
+          <button onClick={() => onShare('threads')}   style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>@ Threads</button>
         </div>
         {shareNotice && <div style={{ textAlign:'center', fontSize:11.5, fontWeight:700, color:'#0E9E68', marginBottom:14 }}>{shareNotice}</div>}
 
