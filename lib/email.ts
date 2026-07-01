@@ -9,10 +9,10 @@ function getClient(): Resend | null {
   return client;
 }
 
-// Resend's shared sandbox sender works without a verified domain but can
-// only deliver to the Resend account owner's own address. Set
-// RESEND_FROM_EMAIL once a domain is verified to send to real users.
-const FROM = process.env.RESEND_FROM_EMAIL || 'Pick The Cup <onboarding@resend.dev>';
+// openclaw-consulting.com is verified in Resend, so this can deliver to
+// real users (not just the Resend account owner, unlike the sandbox
+// sender). Override via RESEND_FROM_EMAIL if a different address is needed.
+const FROM = process.env.RESEND_FROM_EMAIL || 'Pick The Cup <picks@openclaw-consulting.com>';
 
 // Best-effort: email is a nice-to-have on top of the core save/inquiry
 // flows, so failures are logged and swallowed rather than surfaced to users.

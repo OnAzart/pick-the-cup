@@ -162,19 +162,24 @@ export function BracketApp() {
       ? `My 2026 World Cup champion: ${champName}! 🏆 Build yours #PickTheCup`
       : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
     const baseUrl = typeof window !== 'undefined' ? window.location.href.split('#')[0].split('?')[0] : 'https://pick-the-cup.vercel.app';
-    // Cache-bust the shared URL so X/Facebook/Threads' link-preview
-    // crawlers always do a fresh og:image scrape, instead of possibly
-    // reusing a stale cached preview from before the OG image existed.
-    const url = `${baseUrl}?share=${Date.now().toString(36)}`;
+    // Personalized share image: /api/share-image renders the actual
+    // predicted champion (via page.tsx's generateMetadata reading
+    // ?champion=) instead of the generic branded card — "I picked Brazil
+    // to win it all" is what's actually shareable, not a static logo card.
+    // Cache-bust too, so X/Facebook/Threads always do a fresh og:image scrape.
+    const params = new URLSearchParams({ share: Date.now().toString(36) });
+    if (champCode) params.set('champion', champCode);
+    const url = `${baseUrl}?${params.toString()}`;
+    const shareImageUrl = champCode ? `/api/share-image?champion=${encodeURIComponent(champCode)}` : '/opengraph-image';
 
     // Instagram has no web share-intent URL, so this used to just open
-    // instagram.com with nothing attached. Attach the real og:image via
+    // instagram.com with nothing attached. Attach the real share image via
     // the native OS share sheet when file-sharing is supported (mobile);
     // fall back to a link-only share, then to copying the link.
     if (net === 'instagram') {
       if (typeof navigator !== 'undefined' && navigator.share) {
         try {
-          const imgRes = await fetch('/opengraph-image');
+          const imgRes = await fetch(shareImageUrl);
           const blob = await imgRes.blob();
           const file = new File([blob], 'pick-the-cup.png', { type: blob.type || 'image/png' });
           if (navigator.canShare?.({ files: [file] })) {
