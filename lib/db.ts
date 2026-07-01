@@ -55,6 +55,14 @@ export function ensureSchema(): Promise<void> {
           errors TEXT
         );
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS predictions (
+          email TEXT PRIMARY KEY,
+          slots JSONB NOT NULL DEFAULT '{}',
+          picks JSONB NOT NULL DEFAULT '{}',
+          updated_at TIMESTAMPTZ DEFAULT now()
+        );
+      `;
     })();
   }
   return schemaReady;

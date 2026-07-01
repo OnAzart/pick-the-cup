@@ -14,6 +14,11 @@ interface BracketState {
   email: string;
 }
 
+interface LockedState {
+  slots: Record<string, string>;
+  picks: Record<string, string>;
+}
+
 function loadState(): BracketState {
   if (typeof window === 'undefined') return { slots: {}, picks: {}, email: '' };
   try {
@@ -47,6 +52,7 @@ const team = (code: string) => {
 /* ─── Main component ─────────────────────────────────────────── */
 export function BracketApp() {
   const [state, setStateRaw] = useState<BracketState>({ slots: {}, picks: {}, email: '' });
+  const [locked, setLocked] = useState<LockedState>({ slots: {}, picks: {} });
   const [showChampion, setShowChampion] = useState(false);
   const [showSponsor, setShowSponsor]   = useState(false);
   const [sponsorDone, setSponsorDone]   = useState(false);
@@ -54,9 +60,20 @@ export function BracketApp() {
   const [spName, setSpName]             = useState('');
   const [spEmail, setSpEmail]           = useState('');
   const [emailDone, setEmailDone]       = useState(false);
+  const [emailSaving, setEmailSaving]   = useState(false);
+  const [emailError, setEmailError]     = useState('');
+  const [showLoad, setShowLoad]         = useState(false);
+  const [loadEmail, setLoadEmail]       = useState('');
+  const [loadStatus, setLoadStatus]     = useState<'idle' | 'loading' | 'notfound' | 'error' | 'done'>('idle');
   const bracketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setStateRaw(loadState()); }, []);
+  useEffect(() => {
+    fetch('/api/locked')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setLocked({ slots: data.slots || {}, picks: data.picks || {} }); })
+      .catch(() => {});
+  }, []);
 
   const commit = (patch: Partial<BracketState>) => {
     setStateRaw(prev => {
@@ -67,9 +84,11 @@ export function BracketApp() {
   };
 
   const { slots, picks, email } = state;
-  const res = computeKO(slots, picks);
-  const used = new Set(Object.values(slots));
-  const made = Object.keys(slots).length + Object.keys(picks).length;
+  const effSlots = { ...slots, ...locked.slots };
+  const effPicks = { ...picks, ...locked.picks };
+  const res = computeKO(effSlots, effPicks);
+  const used = new Set(Object.values(effSlots));
+  const made = Object.keys(effSlots).length + Object.keys(effPicks).length;
   const total = 64;
   const pct = Math.max(2, Math.round(made / total * 100));
 
@@ -80,16 +99,27 @@ export function BracketApp() {
   const canShare  = !!champCode;
 
   const selectSlot = (key: string, code: string) => {
+    if (locked.slots[key]) return;
     const newSlots = { ...slots };
     if (code) newSlots[key] = code; else delete newSlots[key];
-    commit({ slots: newSlots, picks: prune(newSlots, picks) });
+    const mergedSlots = { ...newSlots, ...locked.slots };
+    const prunedPicks = prune(mergedSlots, { ...picks, ...locked.picks });
+    for (const id of Object.keys(locked.picks)) delete prunedPicks[id];
+    commit({ slots: newSlots, picks: prunedPicks });
   };
   const clearSlot = (key: string) => {
+    if (locked.slots[key]) return;
     const newSlots = { ...slots }; delete newSlots[key];
-    commit({ slots: newSlots, picks: prune(newSlots, picks) });
+    const mergedSlots = { ...newSlots, ...locked.slots };
+    const prunedPicks = prune(mergedSlots, { ...picks, ...locked.picks });
+    for (const id of Object.keys(locked.picks)) delete prunedPicks[id];
+    commit({ slots: newSlots, picks: prunedPicks });
   };
   const pick = (id: string, code: string) => {
-    const newPicks = prune(slots, { ...picks, [id]: code });
+    if (locked.picks[id]) return;
+    const mergedSlots = { ...slots, ...locked.slots };
+    const newPicks = prune(mergedSlots, { ...picks, ...locked.picks, [id]: code });
+    for (const lid of Object.keys(locked.picks)) delete newPicks[lid];
     const isChamp = id === 'M104' && newPicks['M104'] === code;
     commit({ picks: newPicks });
     if (isChamp) setShowChampion(true);
@@ -101,6 +131,8 @@ export function BracketApp() {
   };
   const doAutofill = () => {
     const r = fillRandom();
+    for (const key of Object.keys(locked.slots)) delete r.slots[key];
+    for (const id of Object.keys(locked.picks)) delete r.picks[id];
     commit(r);
     setShowChampion(true);
     setEmailDone(false);
@@ -132,8 +164,38 @@ export function BracketApp() {
   const submitSponsor = () => {
     if (spCompany && spName && spEmail.includes('@')) setSponsorDone(true);
   };
-  const submitEmail = () => {
-    if (email.includes('@')) setEmailDone(true);
+  const submitEmail = async () => {
+    if (!email.includes('@')) return;
+    setEmailSaving(true);
+    setEmailError('');
+    try {
+      const r = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, slots, picks }),
+      });
+      if (!r.ok) throw new Error('save failed');
+      setEmailDone(true);
+    } catch {
+      setEmailError('Could not save — try again.');
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  const doLoad = async () => {
+    if (!loadEmail.includes('@')) return;
+    setLoadStatus('loading');
+    try {
+      const r = await fetch('/api/predictions?email=' + encodeURIComponent(loadEmail));
+      const data = await r.json();
+      if (!r.ok) throw new Error('load failed');
+      if (!data.found) { setLoadStatus('notfound'); return; }
+      commit({ slots: data.slots || {}, picks: data.picks || {}, email: loadEmail });
+      setLoadStatus('done');
+    } catch {
+      setLoadStatus('error');
+    }
   };
 
   return (
@@ -144,6 +206,7 @@ export function BracketApp() {
         canShare={canShare}
         onReset={doReset} onAutofill={doAutofill}
         onShare={() => canShare && setShowChampion(true)}
+        onLoad={() => { setShowLoad(true); setLoadStatus('idle'); }}
       />
       <InstructionBand />
 
@@ -156,7 +219,8 @@ export function BracketApp() {
               key={col.title + ci}
               title={col.title}
               matchIds={col.matches}
-              res={res} slots={slots} used={used}
+              res={res} slots={effSlots} used={used}
+              lockedSlots={locked.slots} lockedPicks={locked.picks}
               side="left" colIdx={ci} colCount={LEFT_COLS.length}
               isFinal={false}
               onPick={pick} onSelect={selectSlot} onClear={clearSlot}
@@ -166,6 +230,7 @@ export function BracketApp() {
           {/* Center: Final + 3rd */}
           <CenterColumn
             res={res} used={used}
+            lockedPicks={locked.picks}
             onPick={pick}
           />
 
@@ -175,7 +240,8 @@ export function BracketApp() {
               key={col.title + ci}
               title={col.title}
               matchIds={col.matches}
-              res={res} slots={slots} used={used}
+              res={res} slots={effSlots} used={used}
+              lockedSlots={locked.slots} lockedPicks={locked.picks}
               side="right" colIdx={ci} colCount={RIGHT_COLS.length}
               isFinal={false}
               onPick={pick} onSelect={selectSlot} onClear={clearSlot}
@@ -199,11 +265,19 @@ export function BracketApp() {
       {showChampion && (
         <ChampionModal
           res={res} champion={champion}
-          emailDone={emailDone} email={email}
+          emailDone={emailDone} emailSaving={emailSaving} emailError={emailError} email={email}
           onEmailChange={e => commit({ email: e.target.value })}
           onEmailSubmit={submitEmail}
           onClose={() => setShowChampion(false)}
           onShare={share}
+        />
+      )}
+      {showLoad && (
+        <LoadModal
+          loadEmail={loadEmail} status={loadStatus}
+          onEmailChange={setLoadEmail}
+          onLoad={doLoad}
+          onClose={() => setShowLoad(false)}
         />
       )}
     </div>
@@ -245,9 +319,9 @@ function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => 
 }
 
 /* ─── Sticky Header ──────────────────────────────────────────── */
-function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare }: {
+function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare, onLoad }: {
   pct: number; made: number; total: number; canShare: boolean;
-  onReset: () => void; onAutofill: () => void; onShare: () => void;
+  onReset: () => void; onAutofill: () => void; onShare: () => void; onLoad: () => void;
 }) {
   return (
     <div style={{ position:'sticky', top:0, zIndex:30, background:'#2D6BFF', borderBottom:'3px solid #161616', overflow:'hidden' }}>
@@ -272,6 +346,7 @@ function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare
           </div>
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <button onClick={onLoad} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>📥 Load</button>
           <button onClick={onReset} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Reset</button>
           <button onClick={onAutofill} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#FF3D8B', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🎲 Surprise me</button>
           <button onClick={onShare} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color: canShare ? '#161616' : '#9b978f', background: canShare ? '#FFC23C' : '#efece4', border: `2.5px solid ${canShare ? '#161616' : '#c8c4ba'}`, borderRadius:11, padding:'9px 13px', cursor: canShare ? 'pointer' : 'not-allowed', boxShadow: canShare ? '2px 2px 0 #161616' : 'none' }}>
@@ -303,9 +378,10 @@ function InstructionBand() {
 }
 
 /* ─── Bracket Column ─────────────────────────────────────────── */
-function BracketColumn({ title, matchIds, res, slots, used, side, colIdx, colCount, isFinal, onPick, onSelect, onClear }: {
+function BracketColumn({ title, matchIds, res, slots, used, lockedSlots, lockedPicks, side, colIdx, colCount, isFinal, onPick, onSelect, onClear }: {
   title: string; matchIds: string[];
   res: Record<string, MatchResult>; slots: Record<string, string>; used: Set<string>;
+  lockedSlots: Record<string, string>; lockedPicks: Record<string, string>;
   side: 'left' | 'right'; colIdx: number; colCount: number; isFinal: boolean;
   onPick: (id: string, code: string) => void;
   onSelect: (key: string, code: string) => void;
@@ -336,9 +412,9 @@ function BracketColumn({ title, matchIds, res, slots, used, side, colIdx, colCou
               <div style={{ width:148 }}>
                 <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, color:'#c3bfb5', paddingLeft:3, marginBottom:2 }}>{id}</div>
                 <div style={{ border:'2.5px solid #161616', borderRadius:12, background:'#fff', boxShadow:'3px 3px 0 #161616', overflow:'hidden' }}>
-                  <MatchSlot matchId={id} side="a" slot={m.a} mr={mr} slots={slots} used={used} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
+                  <MatchSlot matchId={id} side="a" slot={m.a} mr={mr} slots={slots} used={used} lockedSlots={lockedSlots} lockedPicks={lockedPicks} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
                   <div style={{ height:2, background:'#161616' }} />
-                  <MatchSlot matchId={id} side="b" slot={m.b} mr={mr} slots={slots} used={used} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
+                  <MatchSlot matchId={id} side="b" slot={m.b} mr={mr} slots={slots} used={used} lockedSlots={lockedSlots} lockedPicks={lockedPicks} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
                 </div>
               </div>
             </div>
@@ -350,10 +426,11 @@ function BracketColumn({ title, matchIds, res, slots, used, side, colIdx, colCou
 }
 
 /* ─── Match Slot ─────────────────────────────────────────────── */
-function MatchSlot({ matchId, side, slot, mr, slots, used, isFinal, onPick, onSelect, onClear }: {
+function MatchSlot({ matchId, side, slot, mr, slots, used, lockedSlots, lockedPicks, isFinal, onPick, onSelect, onClear }: {
   matchId: string; side: 'a' | 'b';
   slot: { r: string; p: string };
-  mr: MatchResult; slots: Record<string, string>; used: Set<string>; isFinal: boolean;
+  mr: MatchResult; slots: Record<string, string>; used: Set<string>;
+  lockedSlots: Record<string, string>; lockedPicks: Record<string, string>; isFinal: boolean;
   onPick: (id: string, code: string) => void;
   onSelect: (key: string, code: string) => void;
   onClear: (key: string) => void;
@@ -361,6 +438,9 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, isFinal, onPick, onSe
   const key = matchId + '|' + side;
   const code = mr[side];
   const leaf = isLeaf(slot.r);
+  const isLockedLeaf = leaf && !!lockedSlots[key];
+  const isLockedPick = !!lockedPicks[matchId];
+  const isLocked = isLockedLeaf || isLockedPick;
 
   if (leaf && !code) {
     const pool = poolFor(slot.p).filter(c => !used.has(c));
@@ -384,19 +464,22 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, isFinal, onPick, onSe
   const bothFilled = !!(mr.a && mr.b);
   const txt  = resolved ? (isFinal ? t!.name : t!.code) : slot.p;
   const flag = resolved ? t!.flag : '';
-  const editable = leaf && resolved;
+  const editable = leaf && resolved && !isLockedLeaf;
+  const clickable = resolved && bothFilled && !isLockedPick;
 
-  let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding: isFinal ? '13px 14px' : '8px 8px', cursor:(resolved && bothFilled) ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
+  let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding: isFinal ? '13px 14px' : '8px 8px', cursor: clickable ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
   if (isWin && isFinal)  rowStyle = { ...rowStyle, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', color:'#161616', fontWeight:900, boxShadow:'inset 0 0 0 2px #161616' };
   else if (isWin)        rowStyle = { ...rowStyle, background:'#17C988', color:'#fff', fontWeight:900 };
   else if (isLose)       rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
   else if (resolved)     rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
   else                   rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
+  if (isLocked) rowStyle = { ...rowStyle, boxShadow: 'inset 0 0 0 2px #2D6BFF' };
 
   return (
-    <div onClick={resolved && bothFilled ? () => onPick(matchId, code!) : undefined} style={rowStyle}>
+    <div onClick={clickable ? () => onPick(matchId, code!) : undefined} style={rowStyle} title={isLocked ? 'Actual result' : undefined}>
       <span style={{ fontSize: isFinal ? 22 : 15, flex:'none', width: isFinal ? 'auto' : 17 }}>{flag}</span>
       <span style={{ flex:1, fontSize: isFinal ? 15 : 12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{txt}</span>
+      {isLocked && <span style={{ flex:'none', fontSize:10 }}>🔒</span>}
       {isWin && <span style={{ flex:'none', fontSize:12, fontWeight:900 }}>✓</span>}
       {editable && (
         <button
@@ -409,14 +492,17 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, isFinal, onPick, onSe
 }
 
 /* ─── Center Column (Final + 3rd) ────────────────────────────── */
-function CenterColumn({ res, used, onPick }: {
+function CenterColumn({ res, used, lockedPicks, onPick }: {
   res: Record<string, MatchResult>; used: Set<string>;
+  lockedPicks: Record<string, string>;
   onPick: (id: string, code: string) => void;
 }) {
   const finalRes = res['M104'];
   const thirdRes = res['M103'];
   const finalM   = KOby['M104'];
   const thirdM   = KOby['M103'];
+  const finalLocked = !!lockedPicks['M104'];
+  const thirdLocked = !!lockedPicks['M103'];
 
   const FinalSlot = ({ side }: { side: 'a' | 'b' }) => {
     const code = finalRes?.[side] ?? null;
@@ -424,15 +510,18 @@ function CenterColumn({ res, used, onPick }: {
     const isLose = !!(finalRes?.winner && code && code !== finalRes.winner);
     const t = code ? team(code) : null;
     const both = !!(finalRes?.a && finalRes?.b);
-    let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'13px 14px', cursor:(code && both) ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
+    const clickable = !!(code && both && !finalLocked);
+    let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'13px 14px', cursor: clickable ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
     if (isWin)  rowStyle = { ...rowStyle, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', color:'#161616', fontWeight:900, boxShadow:'inset 0 0 0 2px #161616' };
     else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
     else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
     else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
+    if (finalLocked) rowStyle = { ...rowStyle, boxShadow: 'inset 0 0 0 2px #2D6BFF' };
     return (
-      <div onClick={code && both ? () => onPick('M104', code) : undefined} style={rowStyle}>
+      <div onClick={clickable ? () => onPick('M104', code!) : undefined} style={rowStyle}>
         <span style={{ fontSize:22, flex:'none' }}>{t?.flag ?? ''}</span>
         <span style={{ flex:1, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? finalM[side].p}</span>
+        {finalLocked && <span style={{ flex:'none', fontSize:11 }}>🔒</span>}
         {isWin && <span style={{ flex:'none', fontSize:15, fontWeight:900 }}>✓</span>}
       </div>
     );
@@ -444,15 +533,18 @@ function CenterColumn({ res, used, onPick }: {
     const isLose = !!(thirdRes?.winner && code && code !== thirdRes.winner);
     const t = code ? team(code) : null;
     const both = !!(thirdRes?.a && thirdRes?.b);
-    let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'8px 8px', cursor:(code && both) ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
+    const clickable = !!(code && both && !thirdLocked);
+    let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'8px 8px', cursor: clickable ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
     if (isWin)  rowStyle = { ...rowStyle, background:'#17C988', color:'#fff', fontWeight:900 };
     else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
     else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
     else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
+    if (thirdLocked) rowStyle = { ...rowStyle, boxShadow: 'inset 0 0 0 2px #2D6BFF' };
     return (
-      <div onClick={code && both ? () => onPick('M103', code) : undefined} style={rowStyle}>
+      <div onClick={clickable ? () => onPick('M103', code!) : undefined} style={rowStyle}>
         <span style={{ fontSize:15, flex:'none', width:17 }}>{t?.flag ?? ''}</span>
         <span style={{ flex:1, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? (side === 'a' ? thirdM.a.p : thirdM.b.p)}</span>
+        {thirdLocked && <span style={{ flex:'none', fontSize:10 }}>🔒</span>}
         {isWin && <span style={{ flex:'none', fontSize:11, fontWeight:900 }}>✓</span>}
       </div>
     );
@@ -597,10 +689,10 @@ function SponsorModal({ done, onClose, company, name, email, onCompany, onName, 
 }
 
 /* ─── Champion Modal ─────────────────────────────────────────── */
-function ChampionModal({ res, champion, emailDone, email, onEmailChange, onEmailSubmit, onClose, onShare }: {
+function ChampionModal({ res, champion, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare }: {
   res: Record<string, MatchResult>;
   champion: { name: string; flag: string } | null;
-  emailDone: boolean; email: string;
+  emailDone: boolean; emailSaving: boolean; emailError: string; email: string;
   onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onEmailSubmit: () => void;
   onClose: () => void;
@@ -736,16 +828,44 @@ function ChampionModal({ res, champion, emailDone, email, onEmailChange, onEmail
         {/* Email capture */}
         <div style={{ borderTop:'2px dashed #d9d5cc', paddingTop:14 }}>
           {emailDone ? (
-            <div style={{ textAlign:'center', fontWeight:800, color:'#0E9E68', fontSize:14 }}>✓ Sent! Check your inbox for your bracket.</div>
+            <div style={{ textAlign:'center', fontWeight:800, color:'#0E9E68', fontSize:14 }}>✓ Saved! Use this email to reload &amp; fix your bracket anytime.</div>
           ) : (
             <>
-              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', marginBottom:8 }}>📬 EMAIL ME MY BRACKET (&amp; JOIN THE LEADERBOARD)</div>
+              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', marginBottom:8 }}>📬 SAVE MY BRACKET TO THIS EMAIL (&amp; JOIN THE LEADERBOARD)</div>
               <div style={{ display:'flex', gap:8 }}>
                 <input value={email} onChange={onEmailChange} placeholder="you@email.com" style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
-                <button onClick={onEmailSubmit} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background:'#14B87A', border:'2.5px solid #161616', borderRadius:12, padding:'11px 15px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Send</button>
+                <button onClick={onEmailSubmit} disabled={emailSaving} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background: emailSaving ? '#9b978f' : '#14B87A', border:'2.5px solid #161616', borderRadius:12, padding:'11px 15px', cursor: emailSaving ? 'not-allowed' : 'pointer', boxShadow:'2px 2px 0 #161616' }}>{emailSaving ? 'Saving…' : 'Save'}</button>
               </div>
+              {emailError && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:6, fontWeight:700 }}>{emailError}</div>}
             </>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Load Modal ─────────────────────────────────────────────── */
+function LoadModal({ loadEmail, status, onEmailChange, onLoad, onClose }: {
+  loadEmail: string; status: 'idle' | 'loading' | 'notfound' | 'error' | 'done';
+  onEmailChange: (v: string) => void;
+  onLoad: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+        <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
+        <div style={{ padding:'26px 22px 22px' }}>
+          <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginBottom:6 }}>📥 Load your bracket</div>
+          <p style={{ fontSize:13.5, color:'#56524b', lineHeight:1.5, margin:'0 0 16px' }}>Enter the email you saved your bracket with — this replaces your current picks.</p>
+          <div style={{ display:'flex', gap:8 }}>
+            <input value={loadEmail} onChange={e => onEmailChange(e.target.value)} placeholder="you@email.com" style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+            <button onClick={onLoad} disabled={status === 'loading'} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background: status === 'loading' ? '#9b978f' : '#2D6BFF', border:'2.5px solid #161616', borderRadius:12, padding:'11px 15px', cursor: status === 'loading' ? 'not-allowed' : 'pointer', boxShadow:'2px 2px 0 #161616' }}>{status === 'loading' ? 'Loading…' : 'Load'}</button>
+          </div>
+          {status === 'notfound' && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:8, fontWeight:700 }}>No saved bracket for that email.</div>}
+          {status === 'error'    && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:8, fontWeight:700 }}>Could not load — try again.</div>}
+          {status === 'done'     && <div style={{ color:'#0E9E68', fontSize:11.5, marginTop:8, fontWeight:700 }}>✓ Loaded!</div>}
         </div>
       </div>
     </div>

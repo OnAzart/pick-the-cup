@@ -6,25 +6,26 @@ export interface Team {
 }
 
 export const TEAMS: Record<string, Team> = {
-  MEX:{n:'Mexico',f:'🇲🇽'}, CRO:{n:'Croatia',f:'🇭🇷'}, NOR:{n:'Norway',f:'🇳🇴'}, KSA:{n:'Saudi Arabia',f:'🇸🇦'},
-  CAN:{n:'Canada',f:'🇨🇦'}, BEL:{n:'Belgium',f:'🇧🇪'}, EGY:{n:'Egypt',f:'🇪🇬'}, NZL:{n:'New Zealand',f:'🇳🇿'},
-  ARG:{n:'Argentina',f:'🇦🇷'}, AUS:{n:'Australia',f:'🇦🇺'}, CIV:{n:'Ivory Coast',f:'🇨🇮'}, PAN:{n:'Panama',f:'🇵🇦'},
-  USA:{n:'USA',f:'🇺🇸'}, SEN:{n:'Senegal',f:'🇸🇳'}, SUI:{n:'Switzerland',f:'🇨🇭'}, PAR:{n:'Paraguay',f:'🇵🇾'},
-  ESP:{n:'Spain',f:'🇪🇸'}, UKR:{n:'Ukraine',f:'🇺🇦'}, JPN:{n:'Japan',f:'🇯🇵'}, QAT:{n:'Qatar',f:'🇶🇦'},
-  FRA:{n:'France',f:'🇫🇷'}, POL:{n:'Poland',f:'🇵🇱'}, ECU:{n:'Ecuador',f:'🇪🇨'}, JAM:{n:'Jamaica',f:'🇯🇲'},
-  BRA:{n:'Brazil',f:'🇧🇷'}, KOR:{n:'Korea Rep.',f:'🇰🇷'}, NGA:{n:'Nigeria',f:'🇳🇬'}, CRC:{n:'Costa Rica',f:'🇨🇷'},
-  ENG:{n:'England',f:'🇬🇧'}, DEN:{n:'Denmark',f:'🇩🇰'}, TUN:{n:'Tunisia',f:'🇹🇳'}, PER:{n:'Peru',f:'🇵🇪'},
-  POR:{n:'Portugal',f:'🇵🇹'}, SRB:{n:'Serbia',f:'🇷🇸'}, CMR:{n:'Cameroon',f:'🇨🇲'}, CHI:{n:'Chile',f:'🇨🇱'},
-  NED:{n:'Netherlands',f:'🇳🇱'}, IRN:{n:'Iran',f:'🇮🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, ALG:{n:'Algeria',f:'🇩🇿'},
-  GER:{n:'Germany',f:'🇩🇪'}, URU:{n:'Uruguay',f:'🇺🇾'}, MAR:{n:'Morocco',f:'🇲🇦'}, SWE:{n:'Sweden',f:'🇸🇪'},
-  COL:{n:'Colombia',f:'🇨🇴'}, TUR:{n:'Türkiye',f:'🇹🇷'}, AUT:{n:'Austria',f:'🇦🇹'}, MLI:{n:'Mali',f:'🇲🇱'},
+  MEX:{n:'Mexico',f:'🇲🇽'}, RSA:{n:'South Africa',f:'🇿🇦'}, KOR:{n:'South Korea',f:'🇰🇷'}, CZE:{n:'Czechia',f:'🇨🇿'},
+  SUI:{n:'Switzerland',f:'🇨🇭'}, CAN:{n:'Canada',f:'🇨🇦'}, BIH:{n:'Bosnia-Herzegovina',f:'🇧🇦'}, QAT:{n:'Qatar',f:'🇶🇦'},
+  BRA:{n:'Brazil',f:'🇧🇷'}, MAR:{n:'Morocco',f:'🇲🇦'}, SCO:{n:'Scotland',f:'🏴'}, HAI:{n:'Haiti',f:'🇭🇹'},
+  USA:{n:'United States',f:'🇺🇸'}, AUS:{n:'Australia',f:'🇦🇺'}, PAR:{n:'Paraguay',f:'🇵🇾'}, TUR:{n:'Turkey',f:'🇹🇷'},
+  GER:{n:'Germany',f:'🇩🇪'}, CIV:{n:'Ivory Coast',f:'🇨🇮'}, ECU:{n:'Ecuador',f:'🇪🇨'}, CUW:{n:'Curaçao',f:'🇨🇼'},
+  NED:{n:'Netherlands',f:'🇳🇱'}, JPN:{n:'Japan',f:'🇯🇵'}, SWE:{n:'Sweden',f:'🇸🇪'}, TUN:{n:'Tunisia',f:'🇹🇳'},
+  BEL:{n:'Belgium',f:'🇧🇪'}, EGY:{n:'Egypt',f:'🇪🇬'}, IRN:{n:'Iran',f:'🇮🇷'}, NZL:{n:'New Zealand',f:'🇳🇿'},
+  ESP:{n:'Spain',f:'🇪🇸'}, CPV:{n:'Cape Verde',f:'🇨🇻'}, URU:{n:'Uruguay',f:'🇺🇾'}, KSA:{n:'Saudi Arabia',f:'🇸🇦'},
+  FRA:{n:'France',f:'🇫🇷'}, NOR:{n:'Norway',f:'🇳🇴'}, SEN:{n:'Senegal',f:'🇸🇳'}, IRQ:{n:'Iraq',f:'🇮🇶'},
+  ARG:{n:'Argentina',f:'🇦🇷'}, AUT:{n:'Austria',f:'🇦🇹'}, ALG:{n:'Algeria',f:'🇩🇿'}, JOR:{n:'Jordan',f:'🇯🇴'},
+  COL:{n:'Colombia',f:'🇨🇴'}, POR:{n:'Portugal',f:'🇵🇹'}, COD:{n:'Congo DR',f:'🇨🇩'}, UZB:{n:'Uzbekistan',f:'🇺🇿'},
+  ENG:{n:'England',f:'🇬🇧'}, CRO:{n:'Croatia',f:'🇭🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, PAN:{n:'Panama',f:'🇵🇦'},
 };
 
+// Real 2026 World Cup group draw, matching football-data.org (see app/api/cron/sync-results).
 export const GROUPS: Record<string, string[]> = {
-  A:['MEX','CRO','NOR','KSA'], B:['CAN','BEL','EGY','NZL'], C:['ARG','AUS','CIV','PAN'],
-  D:['USA','SEN','SUI','PAR'], E:['ESP','UKR','JPN','QAT'], F:['FRA','POL','ECU','JAM'],
-  G:['BRA','KOR','NGA','CRC'], H:['ENG','DEN','TUN','PER'], I:['POR','SRB','CMR','CHI'],
-  J:['NED','IRN','GHA','ALG'], K:['GER','URU','MAR','SWE'], L:['COL','TUR','AUT','MLI'],
+  A:['MEX','RSA','KOR','CZE'], B:['SUI','CAN','BIH','QAT'], C:['BRA','MAR','SCO','HAI'],
+  D:['USA','AUS','PAR','TUR'], E:['GER','CIV','ECU','CUW'], F:['NED','JPN','SWE','TUN'],
+  G:['BEL','EGY','IRN','NZL'], H:['ESP','CPV','URU','KSA'], I:['FRA','NOR','SEN','IRQ'],
+  J:['ARG','AUT','ALG','JOR'], K:['COL','POR','COD','UZB'], L:['ENG','CRO','GHA','PAN'],
 };
 
 export interface KOSlot { r: string; p: string; }
