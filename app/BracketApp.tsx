@@ -33,6 +33,26 @@ interface LockedState {
   dates: Record<string, string>;
 }
 
+// A friend's picks carried in the share-link URL params — the same params
+// /api/share-image consumes, so a shared link doubles as a challenge link
+// with zero backend.
+interface FriendPicks {
+  semis: [string, string, string, string]; // [semiLA, semiLB, semiRA, semiRB]
+  champion: string | null;
+}
+
+function parseFriendFromUrl(): FriendPicks | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const get = (k: string) => { const v = p.get(k); return v && TEAMS[v] ? v : null; };
+    const semiLA = get('semiLA'), semiLB = get('semiLB'), semiRA = get('semiRA'), semiRB = get('semiRB');
+    if (!semiLA || !semiLB || !semiRA || !semiRB) return null;
+    if (new Set([semiLA, semiLB, semiRA, semiRB]).size !== 4) return null;
+    return { semis: [semiLA, semiLB, semiRA, semiRB], champion: get('champion') };
+  } catch { return null; }
+}
+
 // Compact local-time kickoff label, e.g. "Jun 27 · 3:00 PM" — falls back to
 // nothing (not "Invalid Date") if the ISO string is missing or unparseable.
 function formatKickoff(iso: string | undefined): string {
@@ -104,13 +124,15 @@ export function BracketApp() {
   const [loadEmail, setLoadEmail]       = useState('');
   const [loadStatus, setLoadStatus]     = useState<'idle' | 'loading' | 'notfound' | 'error' | 'done'>('idle');
   const [shareNotice, setShareNotice]   = useState('');
+  const [friend, setFriend]             = useState<FriendPicks | null>(null);
+  const [challengeDismissed, setChallengeDismissed] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [savingImage, setSavingImage]   = useState(false);
   const [exportScope, setExportScope]   = useState<ExportScope>('all');
   const bracketRef = useRef<HTMLDivElement>(null);
   const bracketContentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setStateRaw(loadState()); }, []);
+  useEffect(() => { setStateRaw(loadState()); setFriend(parseFriendFromUrl()); }, []);
   useEffect(() => {
     fetch('/api/locked')
       .then(r => r.ok ? r.json() : null)
@@ -151,6 +173,14 @@ export function BracketApp() {
   // already a shareable "who's in your final four" moment.
   const semisKnown = !!(res['M101']?.a && res['M101']?.b && res['M102']?.a && res['M102']?.b);
   const canShare  = semisKnown;
+  // Which semifinal slots are already real (locked results resolved the same
+  // way from locked-only data) vs. the user's own prediction — used to badge
+  // 🔒 real teams vs. chosen ones in the champion modal's final-four card.
+  const lockedOnlyRes = computeKO(locked.slots, locked.picks);
+  const realSemis = new Set(
+    [lockedOnlyRes['M101']?.a, lockedOnlyRes['M101']?.b, lockedOnlyRes['M102']?.a, lockedOnlyRes['M102']?.b]
+      .filter((c): c is string => !!c)
+  );
 
   const selectSlot = (key: string, code: string) => {
     if (locked.slots[key]) return;
@@ -207,7 +237,7 @@ export function BracketApp() {
 
     let text: string;
     if (champion) {
-      text = `My 2026 World Cup champion: ${champion.name}! 🏆 Build yours #PickTheCup`;
+      text = `My 2026 World Cup champion: ${champion.name}! 🏆 Think you can beat my bracket? #PickTheCup`;
     } else if (semisKnown) {
       // Split the 4 semifinalists into "already real" (resolved the same way
       // from locked-only data) vs. "my own pick" so the text stays honest
@@ -281,6 +311,15 @@ export function BracketApp() {
     */
 
     setShareNotice('');
+    if (net === 'copy') {
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        setShareNotice('Link copied — send it to a friend and dare them to beat you!');
+      } catch {
+        setShareNotice(`Copy this link: ${url}`);
+      }
+      return;
+    }
     const enc = encodeURIComponent(text);
     let href = '';
     // X's web intent unfurls og:image automatically from the shared URL.
@@ -288,6 +327,10 @@ export function BracketApp() {
     // Threads' intent only takes one `text` param, so fold the link in —
     // it still unfurls the og:image once posted.
     else if (net === 'threads') href = `https://www.threads.net/intent/post?text=${encodeURIComponent(text + ' ' + url)}`;
+    // WhatsApp/Telegram: where friend-to-friend challenges actually happen —
+    // both unfurl the og:image from the link.
+    else if (net === 'whatsapp') href = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+    else if (net === 'telegram') href = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${enc}`;
     /* Facebook disabled for now — not working.
     else if (net === 'facebook') href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${enc}`;
     */
@@ -387,6 +430,9 @@ export function BracketApp() {
         onSaveImage={() => setShowSaveMenu(true)}
       />
       <InstructionBand />
+      {friend && !challengeDismissed && (
+        <ChallengeBanner friend={friend} onBuild={scrollToBracket} onDismiss={() => setChallengeDismissed(true)} />
+      )}
 
       {/* BRACKET */}
       <div ref={bracketRef} id="bracket" style={{ overflowX: 'auto', padding: '16px 20px 44px', display: 'flex', justifyContent: 'safe center' }}>
@@ -446,6 +492,7 @@ export function BracketApp() {
       {showChampion && (
         <ChampionModal
           res={res} champion={champion}
+          friend={friend} realSemis={realSemis}
           emailDone={emailDone} emailSaving={emailSaving} emailError={emailError} email={email}
           onEmailChange={e => commit({ email: e.target.value })}
           onEmailSubmit={submitEmail}
@@ -786,6 +833,46 @@ function CenterColumn({ res, used, lockedPicks, userPicks, dates, onPick }: {
   );
 }
 
+/* ─── Challenge Banner ───────────────────────────────────────── */
+function ChallengeBanner({ friend, onBuild, onDismiss }: {
+  friend: FriendPicks;
+  onBuild: () => void;
+  onDismiss: () => void;
+}) {
+  const champ = friend.champion ? team(friend.champion) : null;
+  return (
+    <div style={{ background:'#FF3D8B', borderBottom:'3px solid #161616' }}>
+      <div style={{ maxWidth:1320, margin:'0 auto', padding:'16px 20px', display:'flex', flexWrap:'wrap', alignItems:'center', gap:14, position:'relative' }}>
+        <div style={{ flex:'1 1 260px', minWidth:220 }}>
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, letterSpacing:'.12em', color:'#ffd6e8' }}>⚔️ YOU&apos;VE BEEN CHALLENGED</div>
+          <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:19, color:'#fff', marginTop:3, lineHeight:1.1 }}>
+            {champ
+              ? <>A friend says {champ.flag} {champ.name} takes the cup. Prove them wrong 👇</>
+              : <>A friend called their Final Four. Think you know better? 👇</>}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+          {friend.semis.map(c => {
+            const t = team(c);
+            const isChamp = c === friend.champion;
+            return (
+              <div key={c} style={{ display:'flex', alignItems:'center', gap:5, background: isChamp ? 'linear-gradient(135deg,#FFD23C,#FFB01F)' : '#fff', border:'2.5px solid #161616', borderRadius:10, padding:'6px 10px', boxShadow:'2px 2px 0 #161616' }}>
+                <span style={{ fontSize:16 }}>{t.flag}</span>
+                <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:12, color:'#161616' }}>{t.code}</span>
+                {isChamp && <span style={{ fontSize:12 }}>👑</span>}
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={onBuild} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:14, color:'#161616', background:'#FFC23C', border:'2.5px solid #161616', borderRadius:12, padding:'11px 18px', cursor:'pointer', boxShadow:'3px 3px 0 #161616', whiteSpace:'nowrap' }}>
+          ⚽ Beat their bracket
+        </button>
+        <button onClick={onDismiss} aria-label="Dismiss challenge" style={{ width:28, height:28, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:12, boxShadow:'2px 2px 0 #161616', flex:'none' }}>✕</button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Sponsor Strip ──────────────────────────────────────────── */
 interface Sponsor { name: string; tag: string; logo: string; bg: string; fg: string; url: string; }
 
@@ -896,9 +983,11 @@ function SponsorModal({ done, saving, error, onClose, company, name, email, onCo
 }
 
 /* ─── Champion Modal ─────────────────────────────────────────── */
-function ChampionModal({ res, champion, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, shareNotice }: {
+function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, shareNotice }: {
   res: Record<string, MatchResult>;
   champion: { name: string; flag: string } | null;
+  friend: FriendPicks | null;
+  realSemis: Set<string>;
   emailDone: boolean; emailSaving: boolean; emailError: string; email: string;
   onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onEmailSubmit: () => void;
@@ -972,28 +1061,53 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
 
           {/* Semi-finalists */}
           <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, letterSpacing:'.12em', color:'#9b978f', textAlign:'center', marginBottom:8 }}>SEMI-FINALISTS</div>
-          <div style={{ display:'flex' }}>
-            <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
-              {fbox(rSemiL?.a ?? null, semiVar(rSemiL?.a ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
-              {fbox(rSemiL?.b ?? null, semiVar(rSemiL?.b ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
-            </div>
-            <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
-              {fbox(rSemiR?.a ?? null, semiVar(rSemiR?.a ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
-              {fbox(rSemiR?.b ?? null, semiVar(rSemiR?.b ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
-            </div>
-          </div>
-
-          {/* Connectors: semis → finalists */}
-          <div style={{ display:'flex' }}>
-            {[0,1].map(i => (
-              <div key={i} style={{ flex:1, position:'relative', height:18 }}>
-                <div style={{ position:'absolute', top:0, left:'25%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
-                <div style={{ position:'absolute', top:0, left:'75%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
-                <div style={{ position:'absolute', top:8, left:'25%', right:'25%', height:2, background:'#161616' }} />
-                <div style={{ position:'absolute', top:8, left:'50%', bottom:0, width:2, background:'#161616', transform:'translateX(-50%)' }} />
+          {champion ? (
+            <div style={{ display:'flex' }}>
+              <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
+                {fbox(rSemiL?.a ?? null, semiVar(rSemiL?.a ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
+                {fbox(rSemiL?.b ?? null, semiVar(rSemiL?.b ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
               </div>
-            ))}
-          </div>
+              <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
+                {fbox(rSemiR?.a ?? null, semiVar(rSemiR?.a ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
+                {fbox(rSemiR?.b ?? null, semiVar(rSemiR?.b ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
+              </div>
+            </div>
+          ) : (
+            // Final-four state: only 4 teams to show, so each gets a big
+            // colored chip (mirrors the /api/share-image final-four card) —
+            // real qualified teams badged 🔒, the user's own picks "MY PICK".
+            <div style={{ display:'flex', gap:7 }}>
+              {([rSemiL?.a, rSemiL?.b, rSemiR?.a, rSemiR?.b] as (string | null | undefined)[]).map((code, i) => {
+                const accents = [
+                  { bg:'#FFC23C', fg:'#161616' }, { bg:'#2D6BFF', fg:'#fff' },
+                  { bg:'#FF3D8B', fg:'#fff' },    { bg:'#14B87A', fg:'#fff' },
+                ][i];
+                const t = code ? team(code) : null;
+                const isReal = !!code && realSemis.has(code);
+                return (
+                  <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:2, border:'2.5px solid #161616', borderRadius:12, background:accents.bg, boxShadow:'3px 3px 0 #161616', padding:'9px 4px' }}>
+                    <span style={{ fontSize:24 }}>{t?.flag ?? ''}</span>
+                    <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, color:accents.fg }}>{t?.code ?? ''}</span>
+                    <span style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:7, letterSpacing:'.08em', color:accents.fg, opacity:.85 }}>{isReal ? '🔒 QUALIFIED' : 'MY PICK'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Connectors: semis → finalists (only drawn once the funnel continues) */}
+          {champion && (
+            <div style={{ display:'flex' }}>
+              {[0,1].map(i => (
+                <div key={i} style={{ flex:1, position:'relative', height:18 }}>
+                  <div style={{ position:'absolute', top:0, left:'25%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+                  <div style={{ position:'absolute', top:0, left:'75%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+                  <div style={{ position:'absolute', top:8, left:'25%', right:'25%', height:2, background:'#161616' }} />
+                  <div style={{ position:'absolute', top:8, left:'50%', bottom:0, width:2, background:'#161616', transform:'translateX(-50%)' }} />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Finalists + champion — only meaningful once M101/M102 actually
               have winners, i.e. once there's a champion at all. Before that,
@@ -1039,12 +1153,21 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
           </div>
         </div>
 
+        {friend && <CompareStrip friend={friend} res={res} />}
+
         {/* Share buttons */}
-        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', textAlign:'center', marginBottom:9 }}>SHARE YOUR BRACKET</div>
-        <div style={{ display:'flex', gap:9, marginBottom:14 }}>
+        <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', textAlign:'center', marginBottom:9 }}>
+          {friend ? 'SHARE THE RIVALRY' : 'CHALLENGE YOUR FRIENDS'}
+        </div>
+        <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+          <button onClick={() => onShare('whatsapp')} style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#fff', background:'#25D366', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>WhatsApp</button>
+          <button onClick={() => onShare('telegram')} style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#fff', background:'#229ED9', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>Telegram</button>
+          <button onClick={() => onShare('copy')}     style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#161616', background:'#FFC23C', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>🔗 Copy</button>
+        </div>
+        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
           {/* Instagram & Facebook disabled for now — not working */}
-          <button onClick={() => onShare('x')}         style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#161616', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>𝕏 Post</button>
-          <button onClick={() => onShare('threads')}   style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>@ Threads</button>
+          <button onClick={() => onShare('x')}         style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#fff', background:'#161616', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>𝕏 Post</button>
+          <button onClick={() => onShare('threads')}   style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>@ Threads</button>
         </div>
         {shareNotice && <div style={{ textAlign:'center', fontSize:11.5, fontWeight:700, color:'#0E9E68', marginBottom:14 }}>{shareNotice}</div>}
 
@@ -1064,6 +1187,64 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── Compare Strip (you vs. the friend whose link you opened) ── */
+function CompareStrip({ friend, res }: { friend: FriendPicks; res: Record<string, MatchResult> }) {
+  const mySemis = [res['M101']?.a, res['M101']?.b, res['M102']?.a, res['M102']?.b]
+    .filter((c): c is string => !!c);
+  const myChampion = res['M104']?.winner ?? null;
+  const mySet = new Set(mySemis);
+  const friendSet = new Set(friend.semis);
+  const overlap = friend.semis.filter(c => mySet.has(c)).length;
+  const bothChamps = !!(myChampion && friend.champion);
+  const sameChamp = bothChamps && myChampion === friend.champion;
+
+  const verdict = bothChamps
+    ? (sameChamp ? `Same champion — great minds 🤝` : `Different champions — one of you is wrong 🔥`)
+    : `You share ${overlap} of 4 semifinalists`;
+
+  const chipRow = (semis: string[], champ: string | null, otherSet: Set<string>, otherChamp: string | null) => (
+    <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+      {semis.map(c => {
+        const t = team(c);
+        const shared = otherSet.has(c);
+        return (
+          <div key={c} style={{ display:'flex', alignItems:'center', gap:4, background: shared ? '#E7F8F0' : '#fff', border:`2px solid ${shared ? '#14B87A' : '#161616'}`, borderRadius:8, padding:'4px 7px' }}>
+            <span style={{ fontSize:13 }}>{t.flag}</span>
+            <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:10, color:'#161616' }}>{t.code}</span>
+          </div>
+        );
+      })}
+      {champ && (
+        <div style={{ display:'flex', alignItems:'center', gap:4, background: otherChamp === champ ? '#E7F8F0' : 'linear-gradient(135deg,#FFD23C,#FFB01F)', border:'2px solid #161616', borderRadius:8, padding:'4px 7px' }}>
+          <span style={{ fontSize:11 }}>👑</span>
+          <span style={{ fontSize:13 }}>{team(champ).flag}</span>
+          <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:10, color:'#161616' }}>{team(champ).code}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{ margin:'0 0 16px', background:'#fff', border:'3px solid #161616', borderRadius:16, boxShadow:'4px 4px 0 #161616', padding:'13px 14px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+        <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:14, color:'#161616' }}>⚔️ YOU vs YOUR FRIEND</span>
+        <span style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#9b978f' }}>{overlap}/4 IN COMMON</span>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ flex:'none', width:38, fontFamily:"var(--font-space-mono), monospace", fontSize:9, fontWeight:700, color:'#2D6BFF' }}>YOU</span>
+          {chipRow(mySemis, myChampion, friendSet, friend.champion)}
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ flex:'none', width:38, fontFamily:"var(--font-space-mono), monospace", fontSize:9, fontWeight:700, color:'#FF3D8B' }}>THEM</span>
+          {chipRow(friend.semis, friend.champion, mySet, myChampion)}
+        </div>
+      </div>
+      <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, color:'#56524b', marginTop:9, textAlign:'center' }}>{verdict}</div>
     </div>
   );
 }
