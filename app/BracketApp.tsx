@@ -41,6 +41,16 @@ interface FriendPicks {
   champion: string | null;
 }
 
+// Anonymous leaderboard rows from /api/leaderboard — rank/score/champion
+// only, no identity (deliberate privacy decision).
+interface BoardEntry { rank: number; score: number; champion: string | null }
+interface BoardData {
+  total: number;
+  maxSoFar: number;
+  top: BoardEntry[];
+  you: { rank: number; score: number } | null;
+}
+
 function parseFriendFromUrl(): FriendPicks | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -126,6 +136,9 @@ export function BracketApp() {
   const [shareNotice, setShareNotice]   = useState('');
   const [friend, setFriend]             = useState<FriendPicks | null>(null);
   const [challengeDismissed, setChallengeDismissed] = useState(false);
+  const [showBoard, setShowBoard]       = useState(false);
+  const [board, setBoard]               = useState<BoardData | null>(null);
+  const [boardStatus, setBoardStatus]   = useState<'loading' | 'error' | 'done'>('loading');
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [savingImage, setSavingImage]   = useState(false);
   const [exportScope, setExportScope]   = useState<ExportScope>('all');
@@ -374,6 +387,16 @@ export function BracketApp() {
     }
   };
 
+  const openBoard = () => {
+    setShowBoard(true);
+    setBoardStatus('loading');
+    const q = email.includes('@') ? '?email=' + encodeURIComponent(email) : '';
+    fetch('/api/leaderboard' + q)
+      .then(r => { if (!r.ok) throw new Error('leaderboard failed'); return r.json(); })
+      .then(d => { setBoard(d); setBoardStatus('done'); })
+      .catch(() => setBoardStatus('error'));
+  };
+
   const doLoad = async () => {
     if (!loadEmail.includes('@')) return;
     setLoadStatus('loading');
@@ -428,6 +451,7 @@ export function BracketApp() {
         onShare={() => canShare && setShowChampion(true)}
         onLoad={() => { setShowLoad(true); setLoadStatus('idle'); }}
         onSaveImage={() => setShowSaveMenu(true)}
+        onBoard={openBoard}
       />
       <InstructionBand />
       {friend && !challengeDismissed && (
@@ -498,6 +522,7 @@ export function BracketApp() {
           onEmailSubmit={submitEmail}
           onClose={() => setShowChampion(false)}
           onShare={share}
+          onBoard={() => { setShowChampion(false); openBoard(); }}
           shareNotice={shareNotice}
         />
       )}
@@ -514,6 +539,13 @@ export function BracketApp() {
           saving={savingImage}
           onSave={doSaveImage}
           onClose={() => setShowSaveMenu(false)}
+        />
+      )}
+      {showBoard && (
+        <LeaderboardModal
+          board={board} status={boardStatus}
+          hasEmail={email.includes('@')}
+          onClose={() => setShowBoard(false)}
         />
       )}
     </div>
@@ -557,9 +589,9 @@ function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => 
 }
 
 /* ─── Sticky Header ──────────────────────────────────────────── */
-function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare, onLoad, onSaveImage }: {
+function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare, onLoad, onSaveImage, onBoard }: {
   pct: number; made: number; total: number; canShare: boolean;
-  onReset: () => void; onAutofill: () => void; onShare: () => void; onLoad: () => void; onSaveImage: () => void;
+  onReset: () => void; onAutofill: () => void; onShare: () => void; onLoad: () => void; onSaveImage: () => void; onBoard: () => void;
 }) {
   return (
     <div style={{ position:'sticky', top:0, zIndex:30, background:'#2D6BFF', borderBottom:'3px solid #161616', overflow:'hidden' }}>
@@ -586,6 +618,7 @@ function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           <button onClick={onLoad} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>📥 Load</button>
           <button onClick={onSaveImage} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>💾 Save</button>
+          <button onClick={onBoard} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🏅 Ranks</button>
           <button onClick={onReset} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>Reset</button>
           {/* "Surprise me" hidden for now — irrelevant while real results are locked in
           <button onClick={onAutofill} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#FF3D8B', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🎲 Surprise me</button>
@@ -983,7 +1016,7 @@ function SponsorModal({ done, saving, error, onClose, company, name, email, onCo
 }
 
 /* ─── Champion Modal ─────────────────────────────────────────── */
-function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, shareNotice }: {
+function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, onBoard, shareNotice }: {
   res: Record<string, MatchResult>;
   champion: { name: string; flag: string } | null;
   friend: FriendPicks | null;
@@ -993,6 +1026,7 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
   onEmailSubmit: () => void;
   onClose: () => void;
   onShare: (net: string) => void;
+  onBoard: () => void;
   shareNotice: string;
 }) {
   const rSemiL = res['M101'];
@@ -1174,7 +1208,12 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
         {/* Email capture */}
         <div style={{ borderTop:'2px dashed #d9d5cc', paddingTop:14 }}>
           {emailDone ? (
-            <div style={{ textAlign:'center', fontWeight:800, color:'#0E9E68', fontSize:14 }}>✓ Saved! Use this email to reload &amp; fix your bracket anytime.</div>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontWeight:800, color:'#0E9E68', fontSize:14 }}>✓ Saved! Use this email to reload &amp; fix your bracket anytime.</div>
+              <button onClick={onBoard} style={{ marginTop:9, fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12.5, color:'#161616', background:'#FFC23C', border:'2.5px solid #161616', borderRadius:11, padding:'9px 15px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>
+                🏅 See where you rank →
+              </button>
+            </div>
           ) : (
             <>
               <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', marginBottom:8 }}>📬 SAVE MY BRACKET TO THIS EMAIL (&amp; JOIN THE LEADERBOARD)</div>
@@ -1245,6 +1284,85 @@ function CompareStrip({ friend, res }: { friend: FriendPicks; res: Record<string
         </div>
       </div>
       <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, color:'#56524b', marginTop:9, textAlign:'center' }}>{verdict}</div>
+    </div>
+  );
+}
+
+/* ─── Leaderboard Modal (anonymous — rank/score only) ─────────── */
+function LeaderboardModal({ board, status, hasEmail, onClose }: {
+  board: BoardData | null;
+  status: 'loading' | 'error' | 'done';
+  hasEmail: boolean;
+  onClose: () => void;
+}) {
+  const medal = (rank: number) => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+  const rows = board?.top.slice(0, 10) ?? [];
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+        <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
+        <div style={{ padding:'26px 22px 22px' }}>
+          <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20 }}>🏅 Leaderboard</div>
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9.5, letterSpacing:'.1em', color:'#9b978f', margin:'4px 0 14px' }}>
+            ANONYMOUS · RANKED BY PICK ACCURACY
+          </div>
+
+          {status === 'loading' && (
+            <div style={{ textAlign:'center', padding:'22px 0', fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#56524b' }}>Loading standings…</div>
+          )}
+          {status === 'error' && (
+            <div style={{ textAlign:'center', padding:'22px 0', color:'#D6336C', fontSize:13, fontWeight:700 }}>Could not load the leaderboard — try again.</div>
+          )}
+
+          {status === 'done' && board && (
+            <>
+              {rows.length === 0 ? (
+                <div style={{ textAlign:'center', padding:'18px 0', fontSize:13.5, color:'#56524b', lineHeight:1.5 }}>
+                  No saved brackets yet — save yours and set the bar. 🏆
+                </div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {rows.map((r, i) => {
+                    const champ = r.champion ? team(r.champion) : null;
+                    return (
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:9, background:'#fff', border:'2px solid #161616', borderRadius:11, padding:'8px 11px', boxShadow: r.rank <= 3 ? '2px 2px 0 #161616' : 'none' }}>
+                        <span style={{ flex:'none', width:32, fontFamily:"var(--font-archivo-black), sans-serif", fontSize: medal(r.rank) ? 17 : 13, color:'#161616' }}>
+                          {medal(r.rank) ?? `#${r.rank}`}
+                        </span>
+                        <span style={{ flex:1, display:'flex', alignItems:'center', gap:5, fontFamily:"var(--font-space-mono), monospace", fontSize:10.5, color:'#56524b' }}>
+                          {champ ? <>👑 <span style={{ fontSize:15 }}>{champ.flag}</span> <b style={{ color:'#161616' }}>{champ.code}</b></> : <span style={{ fontStyle:'italic', color:'#bdb8ae' }}>no champion pick</span>}
+                        </span>
+                        <span style={{ flex:'none', fontFamily:"var(--font-archivo-black), sans-serif", fontSize:14 }}>{r.score} <span style={{ fontSize:9, fontFamily:"var(--font-space-mono), monospace", color:'#9b978f' }}>PTS</span></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Your own standing — matched server-side by your saved email */}
+              {board.you ? (
+                <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:9, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', border:'2.5px solid #161616', borderRadius:11, padding:'9px 11px', boxShadow:'3px 3px 0 #161616' }}>
+                  <span style={{ flex:'none', fontFamily:"var(--font-space-mono), monospace", fontSize:10, fontWeight:700 }}>YOU</span>
+                  <span style={{ flex:1, fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15 }}>#{board.you.rank} <span style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, fontWeight:400 }}>of {board.total}</span></span>
+                  <span style={{ flex:'none', fontFamily:"var(--font-archivo-black), sans-serif", fontSize:14 }}>{board.you.score} <span style={{ fontSize:9, fontFamily:"var(--font-space-mono), monospace", color:'#6b5a16' }}>PTS</span></span>
+                </div>
+              ) : (
+                <div style={{ marginTop:12, background:'#FBF6E8', border:'2px dashed #c8c4ba', borderRadius:11, padding:'10px 12px', fontSize:12, color:'#56524b', lineHeight:1.5, textAlign:'center' }}>
+                  {hasEmail
+                    ? 'Your bracket isn’t on the board yet — hit Share and save it with your email.'
+                    : 'Save your bracket with your email (in the Share screen) to claim your spot.'}
+                </div>
+              )}
+
+              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, color:'#9b978f', marginTop:12, textAlign:'center', lineHeight:1.6 }}>
+                1PT R32 · 2 R16 · 4 QF · 8 SF · 4 3RD · 16 FINAL<br />
+                {board.maxSoFar} PTS DECIDED SO FAR · SCORES UPDATE AS REAL RESULTS COME IN
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
