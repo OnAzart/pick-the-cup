@@ -147,8 +147,24 @@ export function BracketApp() {
   const bracketContentRef = useRef<HTMLDivElement>(null);
 
   const [refCode, setRefCode] = useState<string | null>(null);
+  // Own leaderboard standing (rank/total/score) — woven into share text as a
+  // bragging hook once the user has points on the board.
+  const [myRank, setMyRank] = useState<{ rank: number; total: number; score: number } | null>(null);
 
-  useEffect(() => { setStateRaw(loadState()); setFriend(parseFriendFromUrl()); }, []);
+  const refreshRank = (em: string) => {
+    if (!em.includes('@')) return;
+    fetch('/api/leaderboard?email=' + encodeURIComponent(em))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.you) setMyRank({ rank: d.you.rank, total: d.total, score: d.you.score }); })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    const s = loadState();
+    setStateRaw(s);
+    setFriend(parseFriendFromUrl());
+    if (s.email) refreshRank(s.email);
+  }, []);
   // Referral attribution: a ?ref=<creator> landing is counted server-side and
   // remembered first-touch in localStorage — later saves and shares carry it.
   useEffect(() => {
@@ -269,9 +285,12 @@ export function BracketApp() {
     const rSemiR = res['M102'];
     const hasFullCard = !!(champCode && rSemiL?.a && rSemiL?.b && rSemiL?.winner && rSemiR?.a && rSemiR?.b && rSemiR?.winner);
 
+    // Brag line only once there are actual points — "#42 with 0 pts" isn't a hook.
+    const brag = myRank && myRank.score > 0 ? ` I'm #${myRank.rank} of ${myRank.total} on the leaderboard.` : '';
+
     let text: string;
     if (champion) {
-      text = `My 2026 World Cup champion: ${champion.name}! 🏆 Think you can beat my bracket? #PickTheCup`;
+      text = `My 2026 World Cup champion: ${champion.name}! 🏆${brag} Think you can beat my bracket? #PickTheCup`;
     } else if (semisKnown) {
       // Split the 4 semifinalists into "already real" (resolved the same way
       // from locked-only data) vs. "my own pick" so the text stays honest
@@ -287,7 +306,7 @@ export function BracketApp() {
       if (realNames.length === 4) {
         text = `World Cup 2026 final four is set: ${realNames.join(', ')} 🔥 Pick who wins it #PickTheCup`;
       } else if (pickNames.length === 4) {
-        text = `My 2026 World Cup final four: ${pickNames.join(' · ')} 🔥 Who's in yours? #PickTheCup`;
+        text = `My 2026 World Cup final four: ${pickNames.join(' · ')} 🔥${brag} Who's in yours? #PickTheCup`;
       } else {
         text = `World Cup 2026: ${realNames.join(' & ')} are through — I've got ${pickNames.join(' & ')} joining them 🔥 Pick yours #PickTheCup`;
       }
@@ -430,6 +449,7 @@ export function BracketApp() {
       });
       if (!r.ok) throw new Error('save failed');
       setEmailDone(true);
+      refreshRank(email);
     } catch {
       setEmailError('Could not save — try again.');
     } finally {
