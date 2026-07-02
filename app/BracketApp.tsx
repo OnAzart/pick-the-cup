@@ -682,6 +682,7 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, lockedSlots, lockedPi
       <span style={{ fontSize: isFinal ? 22 : 15, flex:'none', width: isFinal ? 'auto' : 17 }}>{flag}</span>
       <span style={{ flex:1, fontSize: isFinal ? 15 : 12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{txt}</span>
       {isWin && <span style={{ flex:'none', fontSize:12, fontWeight:900 }}>✓</span>}
+      {isLocked && <span style={{ flex:'none', fontSize:10, opacity:.75 }}>🔒</span>}
       {editable && (
         <button
           onClick={e => { e.stopPropagation(); onClear(key); }}
@@ -732,6 +733,7 @@ function CenterColumn({ res, used, lockedPicks, userPicks, dates, onPick }: {
         <span style={{ fontSize:22, flex:'none' }}>{t?.flag ?? ''}</span>
         <span style={{ flex:1, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? finalM[side].p}</span>
         {isWin && <span style={{ flex:'none', fontSize:15, fontWeight:900 }}>✓</span>}
+        {finalLocked && <span style={{ flex:'none', fontSize:13, opacity:.75 }}>🔒</span>}
       </div>
     );
   };
@@ -756,6 +758,7 @@ function CenterColumn({ res, used, lockedPicks, userPicks, dates, onPick }: {
         <span style={{ fontSize:15, flex:'none', width:17 }}>{t?.flag ?? ''}</span>
         <span style={{ flex:1, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t?.name ?? (side === 'a' ? thirdM.a.p : thirdM.b.p)}</span>
         {isWin && <span style={{ flex:'none', fontSize:11, fontWeight:900 }}>✓</span>}
+        {thirdLocked && <span style={{ flex:'none', fontSize:10, opacity:.75 }}>🔒</span>}
       </div>
     );
   };
