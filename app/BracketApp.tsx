@@ -324,6 +324,29 @@ export function BracketApp() {
     }
     const url = `${baseUrl}?${params.toString()}`;
 
+    // Native share sheet (mobile): attach the actual card image when the OS
+    // supports file sharing, else fall back to text+url. The image URL is the
+    // same params minus the cache-buster (and minus ref — attribution rides
+    // the page URL, not the image).
+    if (net === 'native') {
+      try {
+        const imgParams = new URLSearchParams(params);
+        imgParams.delete('share');
+        imgParams.delete('ref');
+        const imgUrl = `/api/share-image?${imgParams.toString()}`;
+        try {
+          const blob = await (await fetch(imgUrl)).blob();
+          const file = new File([blob], 'pick-the-cup.png', { type: blob.type || 'image/png' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text: `${text} ${url}` });
+            return;
+          }
+        } catch {}
+        await navigator.share({ text, url });
+      } catch {}
+      return;
+    }
+
     /* Instagram disabled for now — not working.
     if (net === 'instagram') {
       if (typeof navigator !== 'undefined' && navigator.share) {
@@ -1056,6 +1079,8 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
   onBoard: () => void;
   shareNotice: string;
 }) {
+  const [canNative, setCanNative] = useState(false);
+  useEffect(() => { setCanNative(typeof navigator !== 'undefined' && typeof navigator.share === 'function'); }, []);
   const rSemiL = res['M101'];
   const rSemiR = res['M102'];
   const rFinal = res['M104'];
@@ -1220,6 +1245,9 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
         <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', textAlign:'center', marginBottom:9 }}>
           {friend ? 'SHARE THE RIVALRY' : 'CHALLENGE YOUR FRIENDS'}
         </div>
+        {canNative && (
+          <button onClick={() => onShare('native')} style={{ width:'100%', fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:15, color:'#fff', background:'#FF3D8B', border:'2.5px solid #161616', borderRadius:13, padding:12, cursor:'pointer', boxShadow:'3px 3px 0 #161616', marginBottom:8 }}>📲 Share…</button>
+        )}
         <div style={{ display:'flex', gap:8, marginBottom:8 }}>
           <button onClick={() => onShare('whatsapp')} style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#fff', background:'#25D366', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>WhatsApp</button>
           <button onClick={() => onShare('telegram')} style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontWeight:900, fontSize:14, color:'#fff', background:'#229ED9', border:'2.5px solid #161616', borderRadius:13, padding:'11px 6px', cursor:'pointer', boxShadow:'3px 3px 0 #161616' }}>Telegram</button>

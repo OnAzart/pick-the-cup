@@ -59,6 +59,7 @@ Details:
    - **Compact mobile sticky header:** full-size header ate ~430px of an 844px screen while scrolling the bracket. Added `.sticky-wrap`/`.sticky-sub`/`.sticky-actions` classes + a ≤640px media query in `globals.css` (hide subtitle, shrink paddings/buttons) — now ~275px with all five buttons on one row.
    - Verified: fresh 390px screenshots (modal header + close reachable, one-row header), desktop centering regression (modal still vertically centered at 1440px), and all 39 prior Playwright assertions re-run green.
    - **Environment note:** midway through, macOS revoked this session's access to the repo under `~/Desktop` (every process got EPERM even on reads — TCC-level, needs the app restarted after re-granting). Worked around by cloning the public GitHub repo into the session scratchpad and building/testing/pushing from there; the Desktop working copy is **behind** until a `git pull`.
+12. **Native share sheet (iteration 5)** — `📲 Share…` button in the champion modal, rendered only when `navigator.share` exists (effectively mobile): fetches the personalized card PNG and attaches it via the Web Share API when `canShare({files})` allows, else falls back to text+url. The image URL is the share params minus the cache-buster and minus `ref` (attribution rides the page URL, not the image). Verified 9/9 (file attach with ref/by intact in the text, no-files fallback, desktop hides the button) + 18/18 main-suite regression.
 
 ### 2026-07-02
 
