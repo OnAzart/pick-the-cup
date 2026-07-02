@@ -54,6 +54,35 @@ function TeamChip({ code, state }: { code: string | null; state: 'active' | 'out
   );
 }
 
+const BIG_CHIP_COLORS = ['#FFC23C', '#2D6BFF', '#FF3D8B', '#14B87A'];
+
+// Bigger, colored chip for the "final four" card — that card has only 4 teams
+// to show in the same space the full funnel uses for 3 rows, so each chip
+// carries more visual weight than the small SF chips in the full funnel.
+function BigChip({ code, accent }: { code: string | null; accent: string }) {
+  const t = team(code);
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        width: 210,
+        height: 120,
+        border: '4px solid #161616',
+        borderRadius: 20,
+        background: accent,
+        boxShadow: '5px 5px 0 #161616',
+      }}
+    >
+      <span style={{ fontSize: 46 }}>{t?.flag ?? ''}</span>
+      <span style={{ fontSize: 22, fontWeight: 900, color: '#161616' }}>{t?.name ?? ''}</span>
+    </div>
+  );
+}
+
 function FinalistChip({ code, isChampion }: { code: string | null; isChampion: boolean }) {
   const t = team(code);
   return (
@@ -119,6 +148,7 @@ export async function GET(req: NextRequest) {
   const champ = team(champCode);
 
   const hasFullCard = champCode && semiLA && semiLB && semiLW && semiRA && semiRB && semiRW;
+  const hasSemisOnly = !hasFullCard && semiLA && semiLB && semiRA && semiRB;
 
   return new ImageResponse(
     (
@@ -148,11 +178,29 @@ export async function GET(req: NextRequest) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ display: 'flex', fontSize: 16, letterSpacing: 3, color: '#9b978f' }}>FIFA WORLD CUP 2026</div>
             <div style={{ display: 'flex', fontSize: 30, fontWeight: 900, color: '#FF3D8B', marginTop: 4 }}>
-              🏆 MY ROAD TO THE TITLE
+              {hasSemisOnly ? '🔥 MY FINAL FOUR' : '🏆 MY ROAD TO THE TITLE'}
             </div>
           </div>
 
-          {hasFullCard ? (
+          {hasSemisOnly ? (
+            <div style={{ display: 'flex', flex: 1, flexDirection: 'column', width: '100%', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', fontSize: 15, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginBottom: 24 }}>
+                MY SEMI-FINAL MATCHUPS
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <BigChip code={semiLA} accent={BIG_CHIP_COLORS[0]} />
+                  <span style={{ display: 'flex', fontSize: 20, fontWeight: 900, color: '#9b978f' }}>VS</span>
+                  <BigChip code={semiLB} accent={BIG_CHIP_COLORS[1]} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <BigChip code={semiRA} accent={BIG_CHIP_COLORS[2]} />
+                  <span style={{ display: 'flex', fontSize: 20, fontWeight: 900, color: '#9b978f' }}>VS</span>
+                  <BigChip code={semiRB} accent={BIG_CHIP_COLORS[3]} />
+                </div>
+              </div>
+            </div>
+          ) : hasFullCard ? (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
               <div style={{ display: 'flex', fontSize: 14, letterSpacing: 3, color: '#9b978f', justifyContent: 'center', marginTop: 26 }}>
                 SEMI-FINALISTS

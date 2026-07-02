@@ -20,6 +20,79 @@ export const TEAMS: Record<string, Team> = {
   ENG:{n:'England',f:'🇬🇧'}, CRO:{n:'Croatia',f:'🇭🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, PAN:{n:'Panama',f:'🇵🇦'},
 };
 
+// Drawn-approximation flag backgrounds (dominant colors/bands, not photographic
+// flags) — ported from the "Flag Winners Test" design exploration. Covers all
+// 48 real 2026 teams; 11 of them (RSA, CZE, BIH, SCO, HAI, CUW, CPV, IRQ, JOR,
+// COD, UZB) aren't in the design's fictional draw so were authored to match
+// its style for this real one.
+export const FLAG_BG: Record<string, string> = {
+  MEX:'linear-gradient(90deg,#006847 0 33%,#fff 33% 66%,#CE1126 66%)',
+  RSA:'linear-gradient(135deg,#000 0 20%,#FFB612 20% 35%,#007749 35% 65%,#DE3831 65% 85%,#001489 85%)',
+  KOR:'linear-gradient(135deg,#fff 0 100%)',
+  CZE:'linear-gradient(135deg,#11457E 0 30%,#fff 30% 65%,#D7141A 65%)',
+  SUI:'linear-gradient(135deg,#D52B1E 0 100%)',
+  CAN:'linear-gradient(90deg,#D80621 0 25%,#fff 25% 75%,#D80621 75%)',
+  BIH:'linear-gradient(135deg,#002395 0 55%,#FECB00 55%)',
+  QAT:'linear-gradient(135deg,#8D1B3D 0 100%)',
+  BRA:'linear-gradient(135deg,#009C3B 0 100%)',
+  MAR:'linear-gradient(135deg,#C1272D 0 100%)',
+  SCO:'linear-gradient(135deg,#0065BD 0 38%,#fff 38% 62%,#0065BD 62%)',
+  HAI:'linear-gradient(180deg,#00209F 0 50%,#D21034 50%)',
+  USA:'linear-gradient(180deg,#B22234 0 20%,#fff 20% 40%,#B22234 40% 60%,#fff 60% 80%,#3C3B6E 80%)',
+  AUS:'linear-gradient(135deg,#00247D 0 100%)',
+  PAR:'linear-gradient(180deg,#D52B1E 0 33%,#fff 33% 66%,#0038A8 66%)',
+  TUR:'linear-gradient(135deg,#E30A17 0 100%)',
+  GER:'linear-gradient(180deg,#000 0 33%,#DD0000 33% 66%,#FFCE00 66%)',
+  CIV:'linear-gradient(90deg,#F77F00 0 33%,#fff 33% 66%,#009E60 66%)',
+  ECU:'linear-gradient(180deg,#FFDD00 0 50%,#034EA2 50% 75%,#ED1C24 75%)',
+  CUW:'linear-gradient(180deg,#002B7F 0 40%,#F9E814 40% 55%,#002B7F 55%)',
+  NED:'linear-gradient(180deg,#AE1C28 0 33%,#fff 33% 66%,#21468B 66%)',
+  JPN:'radial-gradient(circle 11px at 50% 50%,#BC002D 99%,#fff 100%)',
+  SWE:'linear-gradient(135deg,#006AA7 0 100%)',
+  TUN:'linear-gradient(135deg,#E70013 0 100%)',
+  BEL:'linear-gradient(90deg,#000 0 33%,#FAE042 33% 66%,#ED2939 66%)',
+  EGY:'linear-gradient(180deg,#CE1126 0 33%,#fff 33% 66%,#000 66%)',
+  IRN:'linear-gradient(180deg,#239F40 0 33%,#fff 33% 66%,#DA0000 66%)',
+  NZL:'linear-gradient(135deg,#00247D 0 100%)',
+  ESP:'linear-gradient(180deg,#AA151B 0 25%,#F1BF00 25% 75%,#AA151B 75%)',
+  CPV:'linear-gradient(180deg,#003893 0 60%,#fff 60% 68%,#CF2027 68% 76%,#fff 76% 84%,#003893 84%)',
+  URU:'linear-gradient(180deg,#fff 0 25%,#0038A8 25% 50%,#fff 50% 75%,#0038A8 75%)',
+  KSA:'linear-gradient(135deg,#0B5B32 0 100%)',
+  FRA:'linear-gradient(90deg,#0055A4 0 33%,#fff 33% 66%,#EF4135 66%)',
+  NOR:'linear-gradient(135deg,#EF2B2D 0 55%,#002868 55% 78%,#fff 78%)',
+  SEN:'linear-gradient(90deg,#00853F 0 33%,#FDEF42 33% 66%,#E31B23 66%)',
+  IRQ:'linear-gradient(180deg,#CE1126 0 33%,#fff 33% 66%,#000 66%)',
+  ARG:'linear-gradient(180deg,#74ACDF 0 33%,#fff 33% 66%,#74ACDF 66%)',
+  AUT:'linear-gradient(180deg,#ED2939 0 33%,#fff 33% 66%,#ED2939 66%)',
+  ALG:'linear-gradient(90deg,#006233 0 50%,#fff 50%)',
+  JOR:'linear-gradient(135deg,#000 0 33%,#fff 33% 66%,#007A3D 66%)',
+  COL:'linear-gradient(180deg,#FCD116 0 50%,#003893 50% 75%,#CE1126 75%)',
+  POR:'linear-gradient(90deg,#006600 0 40%,#FF0000 40%)',
+  COD:'linear-gradient(135deg,#007FFF 0 38%,#F7D618 38% 44%,#CE1021 44% 56%,#F7D618 56% 62%,#007FFF 62%)',
+  UZB:'linear-gradient(180deg,#0099B5 0 33%,#fff 33% 66%,#1EB53A 66%)',
+  ENG:'linear-gradient(135deg,#fff 0 100%)',
+  CRO:'linear-gradient(180deg,#FF0000 0 33%,#fff 33% 66%,#0093DD 66%)',
+  GHA:'linear-gradient(180deg,#CE1126 0 33%,#FCD116 33% 66%,#006B3F 66%)',
+  PAN:'linear-gradient(135deg,#CF142B 0 50%,#00205B 50%)',
+};
+
+// Flags whose FLAG_BG is solid/near-solid white — need dark text instead of
+// the white-text-on-scrim treatment every other (darker) flag gets.
+export const LIGHT_FLAGS = new Set(['KOR', 'ENG']);
+
+export interface WinRowColors { background: string; color: string; textShadow: string; }
+
+// Winning-team row treatment: the team's own flag colors as background (with
+// a dark scrim for legibility, skipped for near-white flags), falling back to
+// flat green if a code somehow isn't in FLAG_BG.
+export function winRowColors(code: string): WinRowColors {
+  const flagBg = FLAG_BG[code];
+  if (!flagBg) return { background: '#17C988', color: '#fff', textShadow: 'none' };
+  const light = LIGHT_FLAGS.has(code);
+  const scrim = light ? '' : 'linear-gradient(rgba(10,10,10,.30),rgba(10,10,10,.30)), ';
+  return { background: scrim + flagBg, color: light ? '#161616' : '#fff', textShadow: light ? 'none' : '1px 1px 0 rgba(0,0,0,.35)' };
+}
+
 // Real 2026 World Cup group draw, matching football-data.org (see app/api/cron/sync-results).
 export const GROUPS: Record<string, string[]> = {
   A:['MEX','RSA','KOR','CZE'], B:['SUI','CAN','BIH','QAT'], C:['BRA','MAR','SCO','HAI'],

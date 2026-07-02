@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import {
   TEAMS, KO, KOby, LEFT_COLS, RIGHT_COLS,
-  computeKO, prune, fillRandom, isLeaf, poolFor, slotLabel,
+  computeKO, prune, fillRandom, isLeaf, poolFor, slotLabel, winRowColors,
   type MatchResult,
 } from './data';
+
+const WIN_RING = 'inset 0 0 0 2px #14B87A';
+const LOSE_RING = 'inset 0 0 0 2px #E5484D';
 
 /* ─── Save-image export (self-contained, safe to remove) ──────── */
 type ExportScope = 'all' | 'r16' | 'qf' | 'final';
@@ -142,7 +145,12 @@ export function BracketApp() {
   const runCode   = res['M104']?.loser   ?? null;
   const thirdCode = res['M103']?.winner  ?? null;
   const champion  = champCode ? team(champCode) : null;
-  const canShare  = !!champCode;
+  // Share unlocks once the Final Four is known (own picks + already-locked
+  // real results combined) rather than waiting for a full champion pick —
+  // that's the point in the bracket where drop-off is highest but there's
+  // already a shareable "who's in your final four" moment.
+  const semisKnown = !!(res['M101']?.a && res['M101']?.b && res['M102']?.a && res['M102']?.b);
+  const canShare  = semisKnown;
 
   const selectSlot = (key: string, code: string) => {
     if (locked.slots[key]) return;
@@ -193,27 +201,56 @@ export function BracketApp() {
   };
 
   const share = async (net: string) => {
-    const champName = champion?.name ?? 'my team';
-    const text = champion
-      ? `My 2026 World Cup champion: ${champName}! 🏆 Build yours #PickTheCup`
-      : 'My 2026 World Cup bracket! 🏆 #PickTheCup';
+    const rSemiL = res['M101'];
+    const rSemiR = res['M102'];
+    const hasFullCard = !!(champCode && rSemiL?.a && rSemiL?.b && rSemiL?.winner && rSemiR?.a && rSemiR?.b && rSemiR?.winner);
+
+    let text: string;
+    if (champion) {
+      text = `My 2026 World Cup champion: ${champion.name}! 🏆 Build yours #PickTheCup`;
+    } else if (semisKnown) {
+      // Split the 4 semifinalists into "already real" (resolved the same way
+      // from locked-only data) vs. "my own pick" so the text stays honest
+      // about what's actually the user's prediction vs. what's already fact.
+      const lockedRes = computeKO(locked.slots, locked.picks);
+      const semiCodes = [rSemiL!.a!, rSemiL!.b!, rSemiR!.a!, rSemiR!.b!];
+      const isLockedReal = (id: string, side: 'a' | 'b', code: string) => lockedRes[id]?.[side] === code;
+      const realNames = [
+        isLockedReal('M101', 'a', rSemiL!.a!), isLockedReal('M101', 'b', rSemiL!.b!),
+        isLockedReal('M102', 'a', rSemiR!.a!), isLockedReal('M102', 'b', rSemiR!.b!),
+      ].map((real, i) => real ? team(semiCodes[i]).name : null).filter((n): n is string => !!n);
+      const pickNames = semiCodes.map(c => team(c).name).filter(n => !realNames.includes(n));
+      if (realNames.length === 4) {
+        text = `World Cup 2026 final four is set: ${realNames.join(', ')} 🔥 Pick who wins it #PickTheCup`;
+      } else if (pickNames.length === 4) {
+        text = `My 2026 World Cup final four: ${pickNames.join(' · ')} 🔥 Who's in yours? #PickTheCup`;
+      } else {
+        text = `World Cup 2026: ${realNames.join(' & ')} are through — I've got ${pickNames.join(' & ')} joining them 🔥 Pick yours #PickTheCup`;
+      }
+    } else {
+      text = 'My 2026 World Cup bracket! 🏆 #PickTheCup';
+    }
     const baseUrl = typeof window !== 'undefined' ? window.location.href.split('#')[0].split('?')[0] : 'https://pick-the-cup.vercel.app';
 
     // Personalized share image: /api/share-image renders the full "road to
-    // the title" card (semi-finalists, finalists, champion) — matches the
-    // in-app champion modal — instead of a generic branded card. Cache-bust
-    // too, so X/Threads always do a fresh og:image scrape.
+    // the title" card (semi-finalists, finalists, champion) once there's a
+    // champion, or a "final four" card once just the 4 semifinalists are
+    // known — matches the in-app champion modal. Cache-bust too, so X/Threads
+    // always do a fresh og:image scrape.
     const params = new URLSearchParams({ share: Date.now().toString(36) });
-    const rSemiL = res['M101'];
-    const rSemiR = res['M102'];
-    if (champCode && rSemiL?.a && rSemiL?.b && rSemiL?.winner && rSemiR?.a && rSemiR?.b && rSemiR?.winner) {
-      params.set('semiLA', rSemiL.a);
-      params.set('semiLB', rSemiL.b);
-      params.set('semiLW', rSemiL.winner);
-      params.set('semiRA', rSemiR.a);
-      params.set('semiRB', rSemiR.b);
-      params.set('semiRW', rSemiR.winner);
-      params.set('champion', champCode);
+    if (hasFullCard) {
+      params.set('semiLA', rSemiL!.a!);
+      params.set('semiLB', rSemiL!.b!);
+      params.set('semiLW', rSemiL!.winner!);
+      params.set('semiRA', rSemiR!.a!);
+      params.set('semiRB', rSemiR!.b!);
+      params.set('semiRW', rSemiR!.winner!);
+      params.set('champion', champCode!);
+    } else if (semisKnown) {
+      params.set('semiLA', rSemiL!.a!);
+      params.set('semiLB', rSemiL!.b!);
+      params.set('semiRA', rSemiR!.a!);
+      params.set('semiRB', rSemiR!.b!);
     }
     const url = `${baseUrl}?${params.toString()}`;
 
@@ -632,9 +669,11 @@ function MatchSlot({ matchId, side, slot, mr, slots, used, lockedSlots, lockedPi
   const clickable = resolved && bothFilled && !isLockedPick;
 
   let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding: isFinal ? '13px 14px' : '8px 8px', cursor: clickable ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
-  if (isWin && isFinal)  rowStyle = { ...rowStyle, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', color:'#161616', fontWeight:900, boxShadow:'inset 0 0 0 2px #161616' };
-  else if (isWin)        rowStyle = { ...rowStyle, background:'#17C988', color:'#fff', fontWeight:900 };
-  else if (isLose)       rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
+  if (isWin) {
+    const wc = winRowColors(code!);
+    rowStyle = { ...rowStyle, background: wc.background, color: wc.color, textShadow: wc.textShadow, fontWeight:900, boxShadow: isFinal ? `${WIN_RING}, inset 0 0 0 4px #FFC23C` : WIN_RING };
+  }
+  else if (isLose)       rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through', boxShadow: LOSE_RING };
   else if (resolved)     rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
   else                   rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
 
@@ -681,8 +720,11 @@ function CenterColumn({ res, used, lockedPicks, userPicks, dates, onPick }: {
     const both = !!(finalRes?.a && finalRes?.b);
     const clickable = !!(code && both && !finalLocked);
     let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'13px 14px', cursor: clickable ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
-    if (isWin)  rowStyle = { ...rowStyle, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', color:'#161616', fontWeight:900, boxShadow:'inset 0 0 0 2px #161616' };
-    else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
+    if (isWin) {
+      const wc = winRowColors(code!);
+      rowStyle = { ...rowStyle, background: wc.background, color: wc.color, textShadow: wc.textShadow, fontWeight:900, boxShadow:`${WIN_RING}, inset 0 0 0 4px #FFC23C` };
+    }
+    else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through', boxShadow: LOSE_RING };
     else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
     else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
     return (
@@ -702,8 +744,11 @@ function CenterColumn({ res, used, lockedPicks, userPicks, dates, onPick }: {
     const both = !!(thirdRes?.a && thirdRes?.b);
     const clickable = !!(code && both && !thirdLocked);
     let rowStyle: React.CSSProperties = { display:'flex', alignItems:'center', gap:6, padding:'8px 8px', cursor: clickable ? 'pointer' : 'default', fontFamily:"var(--font-archivo), sans-serif", lineHeight:1, transition:'background .15s' };
-    if (isWin)  rowStyle = { ...rowStyle, background:'#17C988', color:'#fff', fontWeight:900 };
-    else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through' };
+    if (isWin) {
+      const wc = winRowColors(code!);
+      rowStyle = { ...rowStyle, background: wc.background, color: wc.color, textShadow: wc.textShadow, fontWeight:900, boxShadow: WIN_RING };
+    }
+    else if (isLose) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800, opacity:.4, textDecoration:'line-through', boxShadow: LOSE_RING };
     else if (code) rowStyle = { ...rowStyle, background:'#fff', color:'#161616', fontWeight:800 };
     else rowStyle = { ...rowStyle, background:'#fbfaf6', color:'#bdb8ae', fontWeight:700, fontStyle:'italic' };
     return (
@@ -889,7 +934,9 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
     );
   };
 
-  const semiVar = (code: string | null, winner: string | null) => code === winner ? 'plain' : 'out';
+  // Before the semi itself has a winner picked, both semifinalists are still
+  // "in it" — only mark a side "out" once there's an actual winner to compare against.
+  const semiVar = (code: string | null, winner: string | null) => (!winner || code === winner) ? 'plain' : 'out';
   const finVar  = (code: string | null) => code === rFinal?.winner ? 'green' : 'dimBig';
 
   return (
@@ -903,15 +950,21 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
       <div style={{ position:'relative', width:'100%', maxWidth:430, background:'#FFFDF5', border:'3px solid #161616', borderRadius:24, boxShadow:'8px 8px 0 #161616', padding:22 }}>
         <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#FF3D8B', letterSpacing:'.1em', fontWeight:700 }}>🎉 BRACKET LOCKED 🎉</div>
-          <h2 style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:26, margin:'8px 0 4px', lineHeight:1.02 }}>Bold call — here&apos;s your road to the title</h2>
+          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#FF3D8B', letterSpacing:'.1em', fontWeight:700 }}>
+            {champion ? '🎉 BRACKET LOCKED 🎉' : '🔥 FINAL FOUR SET 🔥'}
+          </div>
+          <h2 style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:26, margin:'8px 0 4px', lineHeight:1.02 }}>
+            {champion ? <>Bold call — here&apos;s your road to the title</> : <>Who takes it from here? Finish your bracket</>}
+          </h2>
         </div>
 
         {/* C2 Funnel Card */}
         <div style={{ margin:'14px 0 16px', background:'#FBF6E8', border:'3px solid #161616', borderRadius:18, boxShadow:'5px 5px 0 #161616', padding:'18px 16px 16px', display:'flex', flexDirection:'column' }}>
           <div style={{ textAlign:'center', marginBottom:8 }}>
             <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, letterSpacing:'.14em', color:'#9b978f' }}>FIFA WORLD CUP 2026</div>
-            <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, color:'#FF3D8B', marginTop:2 }}>🏆 MY ROAD TO THE TITLE</div>
+            <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, color:'#FF3D8B', marginTop:2 }}>
+              {champion ? '🏆 MY ROAD TO THE TITLE' : '🔥 MY FINAL FOUR'}
+            </div>
           </div>
 
           {/* Semi-finalists */}
@@ -939,36 +992,43 @@ function ChampionModal({ res, champion, emailDone, emailSaving, emailError, emai
             ))}
           </div>
 
-          {/* Finalists */}
-          <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, letterSpacing:'.12em', color:'#9b978f', textAlign:'center', margin:'6px 0 8px' }}>FINALISTS</div>
-          <div style={{ display:'flex' }}>
-            <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
-              {fbox(rSemiL?.winner ?? null, finVar(rSemiL?.winner ?? null) as 'green'|'dimBig')}
-            </div>
-            <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
-              {fbox(rSemiR?.winner ?? null, finVar(rSemiR?.winner ?? null) as 'green'|'dimBig')}
-            </div>
-          </div>
-
-          {/* Connectors: finalists → champion */}
-          <div style={{ position:'relative', height:18 }}>
-            <div style={{ position:'absolute', top:0, left:'25%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
-            <div style={{ position:'absolute', top:0, left:'75%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
-            <div style={{ position:'absolute', top:8, left:'25%', right:'25%', height:2, background:'#161616' }} />
-            <div style={{ position:'absolute', top:8, left:'50%', bottom:0, width:2, background:'#161616', transform:'translateX(-50%)' }} />
-          </div>
-
-          {/* Champion */}
-          <div style={{ display:'flex', justifyContent:'center', marginTop:4 }}>
-            <div style={{ border:'3px solid #161616', borderRadius:14, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', boxShadow:'4px 4px 0 #161616', padding:'10px 18px', display:'flex', alignItems:'center', gap:11, whiteSpace:'nowrap' }}>
-              <span style={{ fontSize:30 }}>{champion?.flag ?? '🏆'}</span>
-              <div style={{ textAlign:'left' }}>
-                <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:21, color:'#161616', lineHeight:1 }}>{champion?.name ?? '—'}</div>
-                <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#6b5a16', letterSpacing:'.1em', marginTop:2 }}>WORLD CHAMPION</div>
+          {/* Finalists + champion — only meaningful once M101/M102 actually
+              have winners, i.e. once there's a champion at all. Before that,
+              the "final four" card stops at the semi-finalists above. */}
+          {champion && (
+            <>
+              {/* Finalists */}
+              <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, letterSpacing:'.12em', color:'#9b978f', textAlign:'center', margin:'6px 0 8px' }}>FINALISTS</div>
+              <div style={{ display:'flex' }}>
+                <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+                  {fbox(rSemiL?.winner ?? null, finVar(rSemiL?.winner ?? null) as 'green'|'dimBig')}
+                </div>
+                <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+                  {fbox(rSemiR?.winner ?? null, finVar(rSemiR?.winner ?? null) as 'green'|'dimBig')}
+                </div>
               </div>
-              <span style={{ fontSize:26 }}>👑</span>
-            </div>
-          </div>
+
+              {/* Connectors: finalists → champion */}
+              <div style={{ position:'relative', height:18 }}>
+                <div style={{ position:'absolute', top:0, left:'25%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+                <div style={{ position:'absolute', top:0, left:'75%', width:2, height:8, background:'#161616', transform:'translateX(-50%)' }} />
+                <div style={{ position:'absolute', top:8, left:'25%', right:'25%', height:2, background:'#161616' }} />
+                <div style={{ position:'absolute', top:8, left:'50%', bottom:0, width:2, background:'#161616', transform:'translateX(-50%)' }} />
+              </div>
+
+              {/* Champion */}
+              <div style={{ display:'flex', justifyContent:'center', marginTop:4 }}>
+                <div style={{ border:'3px solid #161616', borderRadius:14, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', boxShadow:'4px 4px 0 #161616', padding:'10px 18px', display:'flex', alignItems:'center', gap:11, whiteSpace:'nowrap' }}>
+                  <span style={{ fontSize:30 }}>{champion.flag}</span>
+                  <div style={{ textAlign:'left' }}>
+                    <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:21, color:'#161616', lineHeight:1 }}>{champion.name}</div>
+                    <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#6b5a16', letterSpacing:'.1em', marginTop:2 }}>WORLD CHAMPION</div>
+                  </div>
+                  <span style={{ fontSize:26 }}>👑</span>
+                </div>
+              </div>
+            </>
+          )}
 
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'2px solid #161616', paddingTop:11, marginTop:16 }}>
             <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, color:'#161616' }}>PICK THE CUP</span>
