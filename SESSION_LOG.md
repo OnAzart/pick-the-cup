@@ -54,6 +54,11 @@ Details:
    - Client: `?ref=<creator>` landing fires one track POST and stores first-touch in localStorage `wc26ref`; share URLs then carry `ref=` (re-attributes whoever lands on them) and `by=` (brands the card); email saves send `ref` too.
    - `/api/share-image` accepts `by=` and renders a gold "🤝 with @handle" pill in the card footer; `page.tsx` forwards `by` into the og:image params.
    - Verified: 10/10 Playwright (sanitized track POST, first-touch survives a second creator's link, share URL carries ref+by, save carries ref, garbage ref fully ignored, no-ref URLs stay clean) + all four share-image variants 200 with the badge confirmed visually. Note: the two initial Playwright failures were test-isolation artifacts (localStorage persisting across pages in one browser context — clear it per test), same trap as the leaderboard run.
+11. **Mobile share-funnel audit + fixes (iteration 4)** — audited every funnel surface at 390×844 (where most share clicks happen):
+   - **Modal top-clipping bug (all 5 modals):** overlays used `alignItems:'center'`, so any modal taller than the viewport clipped its top — including the ✕ close button — unreachably. Fixed with the never-clips pattern: overlay drops `alignItems`, each modal card gets `margin:'auto'` (centers when it fits, top-aligns scrollably when it doesn't). Same family as the `justify-content: safe center` bracket gotcha above.
+   - **Compact mobile sticky header:** full-size header ate ~430px of an 844px screen while scrolling the bracket. Added `.sticky-wrap`/`.sticky-sub`/`.sticky-actions` classes + a ≤640px media query in `globals.css` (hide subtitle, shrink paddings/buttons) — now ~275px with all five buttons on one row.
+   - Verified: fresh 390px screenshots (modal header + close reachable, one-row header), desktop centering regression (modal still vertically centered at 1440px), and all 39 prior Playwright assertions re-run green.
+   - **Environment note:** midway through, macOS revoked this session's access to the repo under `~/Desktop` (every process got EPERM even on reads — TCC-level, needs the app restarted after re-granting). Worked around by cloning the public GitHub repo into the session scratchpad and building/testing/pushing from there; the Desktop working copy is **behind** until a `git pull`.
 
 ### 2026-07-02
 

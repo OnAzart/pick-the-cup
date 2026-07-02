@@ -24,3 +24,11 @@ select {
   background-repeat: no-repeat;
   background-position: right 7px center;
 }
+
+/* Compact sticky header on phones — full-size version eats half the screen. */
+@media (max-width: 640px) {
+  .sticky-wrap { padding: 8px 12px !important; gap: 8px !important; }
+  .sticky-sub { display: none !important; }
+  .sticky-actions { gap: 6px !important; }
+  .sticky-actions button { padding: 7px 9px !important; font-size: 11px !important; }
+}

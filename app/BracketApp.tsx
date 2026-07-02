@@ -625,12 +625,12 @@ function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare
       <div style={{ position:'absolute', top:8, left:'38%', width:9, height:9, borderRadius:2, background:'#FFC23C' }} className="anim-float-1" />
       <div style={{ position:'absolute', top:26, left:'55%', width:7, height:7, borderRadius:'50%', background:'#FF3D8B' }} className="anim-float-2" />
       <div style={{ position:'absolute', top:14, left:'72%', width:11, height:6, borderRadius:2, background:'#14B87A' }} className="anim-float-3" />
-      <div style={{ maxWidth:1320, margin:'0 auto', padding:'13px 20px', display:'flex', flexWrap:'wrap', alignItems:'center', gap:16, position:'relative' }}>
+      <div className="sticky-wrap" style={{ maxWidth:1320, margin:'0 auto', padding:'13px 20px', display:'flex', flexWrap:'wrap', alignItems:'center', gap:16, position:'relative' }}>
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
           <div style={{ width:38, height:38, borderRadius:11, background:'#FFC23C', border:'2.5px solid #161616', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'2px 2px 0 #161616' }}>🏆</div>
           <div>
             <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", color:'#fff', fontSize:19, lineHeight:.95, letterSpacing:'-.01em' }}>PICK THE CUP</div>
-            <div style={{ fontFamily:"var(--font-space-mono), monospace", color:'#cfe0ff', fontSize:10, letterSpacing:'.08em', marginTop:2 }}>WORLD CUP 2026 · KNOCKOUT BRACKET</div>
+            <div className="sticky-sub" style={{ fontFamily:"var(--font-space-mono), monospace", color:'#cfe0ff', fontSize:10, letterSpacing:'.08em', marginTop:2 }}>WORLD CUP 2026 · KNOCKOUT BRACKET</div>
           </div>
         </div>
         <div style={{ flex:1, minWidth:180 }}>
@@ -642,7 +642,7 @@ function StickyHeader({ pct, made, total, canShare, onReset, onAutofill, onShare
             <span style={{ color:'#fff', fontWeight:700 }}>{made} / {total} PICKS</span>
           </div>
         </div>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        <div className="sticky-actions" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           <button onClick={onLoad} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>📥 Load</button>
           <button onClick={onSaveImage} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>💾 Save</button>
           <button onClick={onBoard} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:12, color:'#161616', background:'#fff', border:'2.5px solid #161616', borderRadius:11, padding:'9px 13px', cursor:'pointer', boxShadow:'2px 2px 0 #161616' }}>🏅 Ranks</button>
@@ -987,8 +987,8 @@ function SponsorModal({ done, saving, error, onClose, company, name, email, onCo
 }) {
   const valid = company && name && email.includes('@');
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
-      <div style={{ position:'relative', width:'100%', maxWidth:460, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', margin:'auto', width:'100%', maxWidth:460, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
         <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
         <div style={{ background:'#2D6BFF', borderBottom:'3px solid #161616', padding:'20px 22px', position:'relative', overflow:'hidden' }}>
           <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, letterSpacing:'.1em', color:'#cfe0ff' }}>PARTNER WITH PICK THE CUP</div>
@@ -1093,14 +1093,14 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
   const finVar  = (code: string | null) => code === rFinal?.winner ? 'green' : 'dimBig';
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', justifyContent:'center', padding:20, overflow:'auto' }}>
       {/* Confetti */}
       <div style={{ position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none' }}>
         {confettiPieces.map((c, i) => (
           <div key={i} style={{ position:'absolute', top:-30, left:c.left, width:c.width, height:c.height, background:c.background, borderRadius:c.borderRadius, animation:`conffall ${c.duration}s linear ${c.delay}s infinite`, opacity:.92 }} />
         ))}
       </div>
-      <div style={{ position:'relative', width:'100%', maxWidth:430, background:'#FFFDF5', border:'3px solid #161616', borderRadius:24, boxShadow:'8px 8px 0 #161616', padding:22 }}>
+      <div style={{ position:'relative', margin:'auto', width:'100%', maxWidth:430, background:'#FFFDF5', border:'3px solid #161616', borderRadius:24, boxShadow:'8px 8px 0 #161616', padding:22 }}>
         <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
         <div style={{ textAlign:'center' }}>
           <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:12, color:'#FF3D8B', letterSpacing:'.1em', fontWeight:700 }}>
@@ -1326,8 +1326,8 @@ function LeaderboardModal({ board, status, hasEmail, onClose }: {
   const rows = board?.top.slice(0, 10) ?? [];
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
-      <div style={{ position:'relative', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', margin:'auto', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
         <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
         <div style={{ padding:'26px 22px 22px' }}>
           <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20 }}>🏅 Leaderboard</div>
@@ -1402,8 +1402,8 @@ function LoadModal({ loadEmail, status, onEmailChange, onLoad, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
-      <div style={{ position:'relative', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', margin:'auto', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
         <button onClick={onClose} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor:'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
         <div style={{ padding:'26px 22px 22px' }}>
           <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginBottom:6 }}>📥 Load your bracket</div>
@@ -1434,8 +1434,8 @@ function SaveImageModal({ saving, onSave, onClose }: {
     { scope: 'final', label: '🎖️ Final only',        desc: 'Just the championship match' },
   ];
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, overflow:'auto' }}>
-      <div style={{ position:'relative', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(22,22,22,.62)', display:'flex', justifyContent:'center', padding:20, overflow:'auto' }}>
+      <div style={{ position:'relative', margin:'auto', width:'100%', maxWidth:400, background:'#FFFDF5', border:'3px solid #161616', borderRadius:22, boxShadow:'8px 8px 0 #161616', overflow:'hidden' }}>
         <button onClick={onClose} disabled={saving} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', cursor: saving ? 'not-allowed' : 'pointer', fontWeight:900, fontSize:15, boxShadow:'2px 2px 0 #161616', zIndex:2 }}>✕</button>
         <div style={{ padding:'26px 22px 22px' }}>
           <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginBottom:6 }}>💾 Save bracket image</div>
