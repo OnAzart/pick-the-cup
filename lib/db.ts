@@ -89,6 +89,17 @@ export function ensureSchema(): Promise<void> {
           ('Red Cross', 'Humanitarian Aid', '➕', '#ED1B2E', '#ffffff', 'https://www.icrc.org', 5)
         ON CONFLICT (name) DO NOTHING;
       `;
+      // Referral attribution (creator outreach): which creator link brought
+      // a visitor in. First-touch ref is also stamped onto saved predictions.
+      await sql`ALTER TABLE predictions ADD COLUMN IF NOT EXISTS ref TEXT;`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS ref_visits (
+          ref TEXT NOT NULL,
+          day DATE NOT NULL,
+          visits INT NOT NULL DEFAULT 0,
+          PRIMARY KEY (ref, day)
+        );
+      `;
       await sql`
         CREATE TABLE IF NOT EXISTS sponsor_inquiries (
           id SERIAL PRIMARY KEY,

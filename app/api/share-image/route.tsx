@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { TEAMS } from '@/app/data';
+import { cleanRef } from '@/lib/ref';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,6 +146,7 @@ export async function GET(req: NextRequest) {
   const semiRA = p.get('semiRA');
   const semiRB = p.get('semiRB');
   const semiRW = p.get('semiRW');
+  const by = cleanRef(p.get('by'));
   const champ = team(champCode);
 
   const hasFullCard = champCode && semiLA && semiLB && semiLW && semiRA && semiRB && semiRW;
@@ -285,7 +287,27 @@ export async function GET(req: NextRequest) {
             }}
           >
             <span style={{ display: 'flex', fontSize: 18, fontWeight: 900, color: '#161616' }}>PICK THE CUP</span>
-            <span style={{ display: 'flex', fontSize: 14, color: '#9b978f' }}>#PickTheCup</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              {by && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#FFC23C',
+                    border: '3px solid #161616',
+                    borderRadius: 999,
+                    padding: '4px 14px',
+                    fontSize: 14,
+                    fontWeight: 900,
+                    color: '#161616',
+                  }}
+                >
+                  🤝 with @{by}
+                </div>
+              )}
+              <span style={{ display: 'flex', fontSize: 14, color: '#9b978f' }}>#PickTheCup</span>
+            </div>
           </div>
         </div>
       </div>

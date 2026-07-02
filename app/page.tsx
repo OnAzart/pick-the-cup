@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BracketApp } from "./BracketApp";
 
-const IMAGE_PARAMS = ['champion', 'semiLA', 'semiLB', 'semiLW', 'semiRA', 'semiRB', 'semiRW'] as const;
+const IMAGE_PARAMS = ['champion', 'semiLA', 'semiLB', 'semiLW', 'semiRA', 'semiRB', 'semiRW', 'by'] as const;
 
 export async function generateMetadata({
   searchParams,

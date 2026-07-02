@@ -7,6 +7,7 @@ import {
   computeKO, prune, fillRandom, isLeaf, poolFor, slotLabel, winRowColors,
   type MatchResult,
 } from './data';
+import { cleanRef } from '@/lib/ref';
 
 const WIN_RING = 'inset 0 0 0 2px #14B87A';
 const LOSE_RING = 'inset 0 0 0 2px #E5484D';
@@ -145,7 +146,27 @@ export function BracketApp() {
   const bracketRef = useRef<HTMLDivElement>(null);
   const bracketContentRef = useRef<HTMLDivElement>(null);
 
+  const [refCode, setRefCode] = useState<string | null>(null);
+
   useEffect(() => { setStateRaw(loadState()); setFriend(parseFriendFromUrl()); }, []);
+  // Referral attribution: a ?ref=<creator> landing is counted server-side and
+  // remembered first-touch in localStorage — later saves and shares carry it.
+  useEffect(() => {
+    try {
+      const urlRef = cleanRef(new URLSearchParams(window.location.search).get('ref'));
+      let stored: string | null = null;
+      try { stored = cleanRef(localStorage.getItem('wc26ref')); } catch {}
+      if (urlRef) {
+        if (!stored) { try { localStorage.setItem('wc26ref', urlRef); } catch {} }
+        fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: urlRef }),
+        }).catch(() => {});
+      }
+      setRefCode(stored ?? urlRef);
+    } catch {}
+  }, []);
   useEffect(() => {
     fetch('/api/locked')
       .then(r => r.ok ? r.json() : null)
@@ -295,6 +316,12 @@ export function BracketApp() {
       params.set('semiRA', rSemiR!.a!);
       params.set('semiRB', rSemiR!.b!);
     }
+    // Creator attribution rides the viral chain: ref re-attributes whoever
+    // lands on this link, by brands the share card with the creator handle.
+    if (refCode) {
+      params.set('ref', refCode);
+      params.set('by', refCode);
+    }
     const url = `${baseUrl}?${params.toString()}`;
 
     /* Instagram disabled for now — not working.
@@ -376,7 +403,7 @@ export function BracketApp() {
       const r = await fetch('/api/predictions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, slots, picks }),
+        body: JSON.stringify({ email, slots, picks, ref: refCode ?? undefined }),
       });
       if (!r.ok) throw new Error('save failed');
       setEmailDone(true);

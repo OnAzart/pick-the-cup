@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { ensureSchema } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
+import { cleanRef } from '@/lib/ref';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,14 +37,18 @@ export async function POST(req: NextRequest) {
   }
   const slots = body?.slots && typeof body.slots === 'object' ? body.slots : {};
   const picks = body?.picks && typeof body.picks === 'object' ? body.picks : {};
+  const ref = cleanRef(body?.ref);
 
   await ensureSchema();
+  // COALESCE keeps first-touch attribution: a re-save without a ref (or with
+  // a different one) doesn't erase the creator who originally brought them.
   await sql`
-    INSERT INTO predictions (email, slots, picks, updated_at)
-    VALUES (${email}, ${JSON.stringify(slots)}, ${JSON.stringify(picks)}, now())
+    INSERT INTO predictions (email, slots, picks, ref, updated_at)
+    VALUES (${email}, ${JSON.stringify(slots)}, ${JSON.stringify(picks)}, ${ref}, now())
     ON CONFLICT (email) DO UPDATE SET
       slots = EXCLUDED.slots,
       picks = EXCLUDED.picks,
+      ref = COALESCE(predictions.ref, EXCLUDED.ref),
       updated_at = now();
   `;
 

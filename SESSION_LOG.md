@@ -21,9 +21,9 @@ Format: **Current state** (below) always reflects the latest known status — up
 ### Pending / not yet done
 
 - `SPONSOR_NOTIFY_EMAIL` env var not set — sponsor inquiries are stored in Postgres either way, but no notification email goes out until this is added in Vercel.
-- Referral-link tracking and creator-branded share cards (discussed as the two things the outreach plan depends on) — **not built yet**.
+- ~~Referral-link tracking and creator-branded share cards~~ — built 2026-07-02 (second session, iteration 3), see that session's entry.
 - Creator outreach research is done (real candidate list, contact methods, messaging templates, offer structure) but **not yet saved to `docs/05-outreach-assets.md`**.
-- `future.md` roadmap items 1-2, 6-7 (match dates, highlight-wrong-picks, flag-color winners, 4-semifinalist share) shipped 2026-07-02 — see below. Items 3-5 (leaderboard, scoring, compare-with-a-friend) are scoped in `future.md` but **not started**.
+- `future.md` roadmap is fully shipped: items 1-2, 6-7 on 2026-07-02 (first session), items 3-5 (leaderboard, scoring, compare-with-a-friend) on 2026-07-02 (second session) — see the session entries below.
 - Growth plan's Day 1-2 action items (Fiverr briefs, first content) are the user's own real-world actions, not code — not something verifiable from here.
 
 ## Sessions
@@ -47,6 +47,13 @@ Details:
    - `/api/leaderboard`: scores every saved prediction, competition ranking (ties share rank), returns top 20 as `{rank, score, champion}` — **no emails/names ever returned** (the anonymity decision). Caller may pass `?email=` to get their own `{rank, score}` matched server-side. 60s edge cache.
    - Frontend: 🏅 Ranks button in the sticky header → `LeaderboardModal` (top 10, medal emoji for 1-3, champion flag per row, gold YOU strip "#n of N", scoring legend + "X pts decided so far"). After saving an email in the champion modal, a "🏅 See where you rank →" button chains straight into the board — closes the save→leaderboard loop the email-capture copy promised.
    - Verified: clean build, scoring unit tests, 11/11 Playwright assertions (board render, tied medals, YOU strip, no-email CTA, save→rank flow, error state). `/api/leaderboard` itself can't run locally (no `POSTGRES_URL`) — verified on prod after deploy instead.
+10. **Referral tracking + creator-branded share cards (iteration 3)** — the two growth-plan dependencies:
+   - `lib/ref.ts`: one strict sanitizer (`cleanRef`, lowercase slug 1-32 chars) used everywhere a handle crosses a boundary.
+   - `/api/track` (POST `{ref}`): counts creator-link landings into a new `ref_visits (ref, day, visits)` table — aggregated per day, nothing personal stored. `predictions` gained a `ref` column; saves stamp it first-touch (`COALESCE(predictions.ref, EXCLUDED.ref)` on conflict so re-saves never erase the original creator).
+   - `/api/referrals` (GET): per-ref visits + saved-bracket conversions, auth'd with the existing `Bearer CRON_SECRET` (no new secret). Usage: `curl -H "Authorization: Bearer $CRON_SECRET" https://pick-the-cup.vercel.app/api/referrals`.
+   - Client: `?ref=<creator>` landing fires one track POST and stores first-touch in localStorage `wc26ref`; share URLs then carry `ref=` (re-attributes whoever lands on them) and `by=` (brands the card); email saves send `ref` too.
+   - `/api/share-image` accepts `by=` and renders a gold "🤝 with @handle" pill in the card footer; `page.tsx` forwards `by` into the og:image params.
+   - Verified: 10/10 Playwright (sanitized track POST, first-touch survives a second creator's link, share URL carries ref+by, save carries ref, garbage ref fully ignored, no-ref URLs stay clean) + all four share-image variants 200 with the badge confirmed visually. Note: the two initial Playwright failures were test-isolation artifacts (localStorage persisting across pages in one browser context — clear it per test), same trap as the leaderboard run.
 
 ### 2026-07-02
 
