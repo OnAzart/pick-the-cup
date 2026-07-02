@@ -255,8 +255,15 @@ export function BracketApp() {
     const newPicks = prune(mergedSlots, { ...picks, ...locked.picks, [id]: code });
     for (const lid of Object.keys(locked.picks)) delete newPicks[lid];
     const isChamp = id === 'M104' && newPicks['M104'] === code;
+    // For challenged visitors, the pick that completes their final four is
+    // the comparison moment — pop the modal (which shows You vs. Friend)
+    // instead of waiting for them to notice the Share button unlocked.
+    // Only on the transition (semisKnown was false), never on page load.
+    const effRes = computeKO(mergedSlots, { ...newPicks, ...locked.picks });
+    const completedSemis = !semisKnown &&
+      !!(effRes['M101']?.a && effRes['M101']?.b && effRes['M102']?.a && effRes['M102']?.b);
     commit({ picks: newPicks });
-    if (isChamp) setShowChampion(true);
+    if (isChamp || (friend && completedSemis)) setShowChampion(true);
   };
   const doReset = () => {
     commit({ slots: {}, picks: {} });
@@ -762,7 +769,7 @@ function BracketColumn({ title, matchIds, res, slots, used, lockedSlots, lockedP
                   <span>{id}</span>
                   {kickoff && <span>{kickoff}</span>}
                 </div>
-                <div style={{ border:`2.5px solid ${cardBorder}`, borderRadius:12, background:'#fff', boxShadow:`3px 3px 0 ${cardBorder}`, overflow:'hidden' }}>
+                <div data-mid={id} style={{ border:`2.5px solid ${cardBorder}`, borderRadius:12, background:'#fff', boxShadow:`3px 3px 0 ${cardBorder}`, overflow:'hidden' }}>
                   <MatchSlot matchId={id} side="a" slot={m.a} mr={mr} slots={slots} used={used} lockedSlots={lockedSlots} lockedPicks={lockedPicks} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
                   <div style={{ height:2, background:'#161616' }} />
                   <MatchSlot matchId={id} side="b" slot={m.b} mr={mr} slots={slots} used={used} lockedSlots={lockedSlots} lockedPicks={lockedPicks} isFinal={isFinal} onPick={onPick} onSelect={onSelect} onClear={onClear} />
