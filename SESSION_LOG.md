@@ -22,7 +22,7 @@ Format: **Current state** (below) always reflects the latest known status — up
 
 - `SPONSOR_NOTIFY_EMAIL` env var not set — sponsor inquiries are stored in Postgres either way, but no notification email goes out until this is added in Vercel.
 - ~~Referral-link tracking and creator-branded share cards~~ — built 2026-07-02 (second session, iteration 3), see that session's entry.
-- Creator outreach research is done (real candidate list, contact methods, messaging templates, offer structure) but **not yet saved to `docs/05-outreach-assets.md`**.
+- ~~Creator outreach assets~~ — `docs/05-outreach-assets.md` written 2026-07-02 (rebuilt on top of the now-live ref-link infra; the original unsaved research from 07-01 was only in that session's conversation and is superseded).
 - `future.md` roadmap is fully shipped: items 1-2, 6-7 on 2026-07-02 (first session), items 3-5 (leaderboard, scoring, compare-with-a-friend) on 2026-07-02 (second session) — see the session entries below.
 - Growth plan's Day 1-2 action items (Fiverr briefs, first content) are the user's own real-world actions, not code — not something verifiable from here.
 
@@ -60,6 +60,7 @@ Details:
    - Verified: fresh 390px screenshots (modal header + close reachable, one-row header), desktop centering regression (modal still vertically centered at 1440px), and all 39 prior Playwright assertions re-run green.
    - **Environment note:** midway through, macOS revoked this session's access to the repo under `~/Desktop` (every process got EPERM even on reads — TCC-level, needs the app restarted after re-granting). Worked around by cloning the public GitHub repo into the session scratchpad and building/testing/pushing from there; the Desktop working copy is **behind** until a `git pull`.
 12. **Native share sheet (iteration 5)** — `📲 Share…` button in the champion modal, rendered only when `navigator.share` exists (effectively mobile): fetches the personalized card PNG and attaches it via the Web Share API when `canShare({files})` allows, else falls back to text+url. The image URL is the share params minus the cache-buster and minus `ref` (attribution rides the page URL, not the image). Verified 9/9 (file attach with ref/by intact in the text, no-files fallback, desktop hides the button) + 18/18 main-suite regression.
+13. **Creator outreach kit (iteration 6)** — `docs/05-outreach-assets.md`: the operational kit the growth plan's creator push needed — zero-cash offer structure (personal ref link + handle on every share card + milestone bonuses judged on `saved` not `visits`), DM/email/bump/brief templates, target profile + where to find creators, `/api/referrals` usage, pipeline tracker, 10-min daily ops loop. Docs-only commit, no app changes.
 
 ### 2026-07-02
 

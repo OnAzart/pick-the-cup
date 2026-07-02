@@ -7,3 +7,4 @@ Research produced by four parallel angles (product, SEO, monetization, viral mar
 - [02-seo-assessment.md](02-seo-assessment.md) — why SEO is a dead end this cycle, and what to do instead.
 - [03-monetization-plan.md](03-monetization-plan.md) — what can realistically make money in days vs. what only looks fast.
 - [04-viral-growth-tactics.md](04-viral-growth-tactics.md) — TikTok/YouTube content tactics and the clickbait line.
+- [05-outreach-assets.md](05-outreach-assets.md) — the operational creator outreach kit: offer, DM/email templates, tracking via /api/referrals, bonus ladder.
