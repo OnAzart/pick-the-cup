@@ -649,13 +649,15 @@ export function BracketApp() {
 
 /* ─── Hero ───────────────────────────────────────────────────── */
 function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => void }) {
+  // svh (not vh) so mobile URL bars don't push the CTA off-screen;
+  // browsers without svh ignore it and fall back to natural height
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', background: '#FFFDF5', borderBottom: '3px solid #161616' }}>
+    <div style={{ position: 'relative', overflow: 'hidden', background: '#FFFDF5', borderBottom: '3px solid #161616', minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ position:'absolute', top:42, left:'14%', width:13, height:13, borderRadius:3, background:'#FFC23C', border:'2px solid #161616' }} className="anim-float-1" />
       <div style={{ position:'absolute', top:90, left:'23%', width:11, height:11, borderRadius:'50%', background:'#FF3D8B' }} className="anim-float-2" />
       <div style={{ position:'absolute', top:60, right:'16%', width:15, height:9, borderRadius:2, background:'#14B87A', border:'2px solid #161616' }} className="anim-float-3" />
       <div style={{ position:'absolute', top:120, right:'24%', width:10, height:10, borderRadius:'50%', background:'#2D6BFF' }} className="anim-float-4" />
-      <div style={{ maxWidth: 920, margin: '0 auto', padding: '42px 20px 46px', textAlign: 'center', position: 'relative' }}>
+      <div style={{ width: '100%', maxWidth: 920, margin: '0 auto', padding: '42px 20px 46px', textAlign: 'center', position: 'relative' }}>
         <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#161616', color:'#fff', borderRadius:999, padding:'7px 15px', fontFamily:"var(--font-space-mono), monospace", fontSize:11, letterSpacing:'.08em' }}>
           <span style={{ fontSize:14 }}>🏆</span> FIFA WORLD CUP 2026 · 48 NATIONS
         </div>
