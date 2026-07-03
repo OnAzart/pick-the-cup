@@ -663,7 +663,7 @@ function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => 
       </svg>
 
       {/* Pitch markings: dashed center circle behind the headline + corner arcs */}
-      <div aria-hidden style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'min(58vw, 620px)', aspectRatio:'1', border:'3px dashed rgba(22,22,22,.09)', borderRadius:'50%' }} />
+      <div aria-hidden style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'min(72vw, 780px)', aspectRatio:'1', border:'3px dashed rgba(22,22,22,.09)', borderRadius:'50%' }} />
       <div aria-hidden style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:'50%', background:'rgba(22,22,22,.09)' }} />
       <div aria-hidden style={{ position:'absolute', left:-70, bottom:-70, width:140, height:140, border:'3px dashed rgba(22,22,22,.14)', borderRadius:'50%' }} />
       <div aria-hidden style={{ position:'absolute', right:-70, top:-40, width:140, height:140, border:'3px dashed rgba(22,22,22,.14)', borderRadius:'50%' }} />
