@@ -653,10 +653,55 @@ function Hero({ onBuild, onSurprise }: { onBuild: () => void; onSurprise: () => 
   // browsers without svh ignore it and fall back to natural height
   return (
     <div style={{ position: 'relative', overflow: 'hidden', background: '#FFFDF5', borderBottom: '3px solid #161616', minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ position:'absolute', top:42, left:'14%', width:13, height:13, borderRadius:3, background:'#FFC23C', border:'2px solid #161616' }} className="anim-float-1" />
-      <div style={{ position:'absolute', top:90, left:'23%', width:11, height:11, borderRadius:'50%', background:'#FF3D8B' }} className="anim-float-2" />
-      <div style={{ position:'absolute', top:60, right:'16%', width:15, height:9, borderRadius:2, background:'#14B87A', border:'2px solid #161616' }} className="anim-float-3" />
-      <div style={{ position:'absolute', top:120, right:'24%', width:10, height:10, borderRadius:'50%', background:'#2D6BFF' }} className="anim-float-4" />
+      {/* Pennant bunting along the top edge */}
+      <svg viewBox="0 0 1400 30" preserveAspectRatio="none" style={{ position:'absolute', top:0, left:0, width:'100%', height:28 }} aria-hidden>
+        <line x1="0" y1="1.5" x2="1400" y2="1.5" stroke="#161616" strokeWidth="3" />
+        {Array.from({ length: 20 }, (_, i) => (
+          <polygon key={i} points={`${i*70},2 ${i*70+70},2 ${i*70+35},28`}
+            fill={['#FFC23C','#FF3D8B','#2D6BFF','#14B87A'][i % 4]} stroke="#161616" strokeWidth="2.5" />
+        ))}
+      </svg>
+
+      {/* Pitch markings: dashed center circle behind the headline + corner arcs */}
+      <div aria-hidden style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'min(58vw, 620px)', aspectRatio:'1', border:'3px dashed rgba(22,22,22,.09)', borderRadius:'50%' }} />
+      <div aria-hidden style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:'50%', background:'rgba(22,22,22,.09)' }} />
+      <div aria-hidden style={{ position:'absolute', left:-70, bottom:-70, width:140, height:140, border:'3px dashed rgba(22,22,22,.14)', borderRadius:'50%' }} />
+      <div aria-hidden style={{ position:'absolute', right:-70, top:-40, width:140, height:140, border:'3px dashed rgba(22,22,22,.14)', borderRadius:'50%' }} />
+
+      {/* Confetti bits */}
+      <div style={{ position:'absolute', top:'8%', left:'14%', width:13, height:13, borderRadius:3, background:'#FFC23C', border:'2px solid #161616' }} className="anim-float-1" />
+      <div style={{ position:'absolute', top:'16%', left:'26%', width:11, height:11, borderRadius:'50%', background:'#FF3D8B' }} className="anim-float-2" />
+      <div style={{ position:'absolute', top:'10%', right:'18%', width:15, height:9, borderRadius:2, background:'#14B87A', border:'2px solid #161616' }} className="anim-float-3" />
+      <div style={{ position:'absolute', top:'22%', right:'27%', width:10, height:10, borderRadius:'50%', background:'#2D6BFF' }} className="anim-float-4" />
+      <div style={{ position:'absolute', bottom:'14%', left:'20%', width:9, height:14, borderRadius:2, background:'#FF3D8B', border:'2px solid #161616' }} className="anim-float-3" />
+      <div style={{ position:'absolute', bottom:'17%', right:'16%', width:12, height:12, borderRadius:3, background:'#FFC23C', border:'2px solid #161616', transform:'rotate(20deg)' }} className="anim-float-1" />
+
+      {/* World Cup props — hidden on phones (hero-deco-lg) so they never sit behind text */}
+      <div className="anim-float-2 hero-deco-lg" style={{ position:'absolute', top:'13%', left:'7%' }} aria-hidden>
+        <span className="anim-spin-slow" style={{ display:'inline-block', fontSize:58 }}>⚽</span>
+      </div>
+      <div className="anim-float-4 hero-deco-lg" style={{ position:'absolute', bottom:'12%', right:'8%' }} aria-hidden>
+        <span style={{ display:'inline-block', fontSize:64, transform:'rotate(-10deg)' }}>⚽</span>
+      </div>
+      <div className="anim-float-1 hero-deco-lg" style={{ position:'absolute', top:'12%', right:'9%' }} aria-hidden>
+        <span style={{ display:'inline-block', fontSize:46, transform:'rotate(12deg)' }}>🏆</span>
+      </div>
+      <div className="anim-float-3 hero-deco-lg" style={{ position:'absolute', bottom:'14%', left:'9%' }} aria-hidden>
+        <span style={{ display:'inline-block', fontSize:44, transform:'rotate(-8deg)' }}>🥅</span>
+      </div>
+      {/* Referee cards */}
+      <div className="anim-float-2 hero-deco-lg" style={{ position:'absolute', top:'44%', right:'5.5%' }} aria-hidden>
+        <div style={{ position:'relative', width:34, height:44 }}>
+          <div style={{ position:'absolute', inset:0, background:'#FFC23C', border:'2.5px solid #161616', borderRadius:5, transform:'rotate(-9deg)' }} />
+          <div style={{ position:'absolute', inset:0, background:'#E5484D', border:'2.5px solid #161616', borderRadius:5, transform:'rotate(9deg) translate(7px, -4px)', boxShadow:'2px 2px 0 #161616' }} />
+        </div>
+      </div>
+      <div className="anim-float-4 hero-deco-lg" style={{ position:'absolute', top:'46%', left:'5.5%' }} aria-hidden>
+        <span style={{ display:'inline-block', fontSize:38, transform:'rotate(-12deg)' }}>🎉</span>
+      </div>
+
+      {/* Scroll cue */}
+      <button onClick={onBuild} aria-label="Scroll to bracket" className="anim-bob" style={{ position:'absolute', bottom:16, left:'50%', width:42, height:42, borderRadius:'50%', border:'2.5px solid #161616', background:'#fff', boxShadow:'2px 2px 0 #161616', cursor:'pointer', fontSize:18, fontWeight:900, lineHeight:1 }}>⌄</button>
       <div style={{ width: '100%', maxWidth: 920, margin: '0 auto', padding: '42px 20px 46px', textAlign: 'center', position: 'relative' }}>
         <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#161616', color:'#fff', borderRadius:999, padding:'7px 15px', fontFamily:"var(--font-space-mono), monospace", fontSize:11, letterSpacing:'.08em' }}>
           <span style={{ fontSize:14 }}>🏆</span> FIFA WORLD CUP 2026 · 48 NATIONS

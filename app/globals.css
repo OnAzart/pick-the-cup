@@ -17,6 +17,16 @@ body { background: #FFFDF5; font-family: var(--font-archivo), sans-serif; color:
 .anim-float-3 { animation: wcfloat 3.7s ease-in-out infinite 0.3s; }
 .anim-float-4 { animation: wcfloat 3.2s ease-in-out infinite 0.8s; }
 
+@keyframes wcspin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+@keyframes wcbob { 0%,100%{transform:translate(-50%,0)} 50%{transform:translate(-50%,9px)} }
+.anim-spin-slow { animation: wcspin 16s linear infinite; }
+.anim-bob { animation: wcbob 1.7s ease-in-out infinite; }
+
+/* Big hero-side ornaments would sit behind the headline on phones — hide them. */
+@media (max-width: 640px) {
+  .hero-deco-lg { display: none !important; }
+}
+
 select {
   -webkit-appearance: none;
   appearance: none;
