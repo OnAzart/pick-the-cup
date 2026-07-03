@@ -70,7 +70,7 @@ export const FLAG_BG: Record<string, string> = {
   POR:'linear-gradient(90deg,#006600 0 40%,#FF0000 40%)',
   COD:'linear-gradient(135deg,#007FFF 0 38%,#F7D618 38% 44%,#CE1021 44% 56%,#F7D618 56% 62%,#007FFF 62%)',
   UZB:'linear-gradient(180deg,#0099B5 0 33%,#fff 33% 66%,#1EB53A 66%)',
-  ENG:'linear-gradient(135deg,#fff 0 100%)',
+  ENG:'linear-gradient(90deg,rgba(255,255,255,0) 0 43%,#CE1124 43% 57%,rgba(255,255,255,0) 57%),linear-gradient(180deg,#fff 0 30%,#CE1124 30% 70%,#fff 70%)',
   CRO:'linear-gradient(180deg,#FF0000 0 33%,#fff 33% 66%,#0093DD 66%)',
   GHA:'linear-gradient(180deg,#CE1126 0 33%,#FCD116 33% 66%,#006B3F 66%)',
   PAN:'linear-gradient(135deg,#CF142B 0 50%,#00205B 50%)',
@@ -78,7 +78,11 @@ export const FLAG_BG: Record<string, string> = {
 
 // Flags whose FLAG_BG is solid/near-solid white — need dark text instead of
 // the white-text-on-scrim treatment every other (darker) flag gets.
-export const LIGHT_FLAGS = new Set(['KOR', 'ENG']);
+// (ENG now renders a St George cross, so its text sits on the red band
+// and gets the regular white-text treatment — but skip the dark scrim,
+// which would just gray out the white field.)
+export const LIGHT_FLAGS = new Set(['KOR']);
+const NO_SCRIM_FLAGS = new Set(['ENG']);
 
 export interface WinRowColors { background: string; color: string; textShadow: string; }
 
@@ -89,7 +93,7 @@ export function winRowColors(code: string): WinRowColors {
   const flagBg = FLAG_BG[code];
   if (!flagBg) return { background: '#17C988', color: '#fff', textShadow: 'none' };
   const light = LIGHT_FLAGS.has(code);
-  const scrim = light ? '' : 'linear-gradient(rgba(10,10,10,.30),rgba(10,10,10,.30)), ';
+  const scrim = light || NO_SCRIM_FLAGS.has(code) ? '' : 'linear-gradient(rgba(10,10,10,.30),rgba(10,10,10,.30)), ';
   return { background: scrim + flagBg, color: light ? '#161616' : '#fff', textShadow: light ? 'none' : '1px 1px 0 rgba(0,0,0,.35)' };
 }
 

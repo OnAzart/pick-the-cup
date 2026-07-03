@@ -145,6 +145,9 @@ export function BracketApp() {
   const [exportScope, setExportScope]   = useState<ExportScope>('all');
   const bracketRef = useRef<HTMLDivElement>(null);
   const bracketContentRef = useRef<HTMLDivElement>(null);
+  // The champion modal's share card DOM node — captured with html-to-image on
+  // native share so the attached PNG is pixel-identical to what's on screen.
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   const [refCode, setRefCode] = useState<string | null>(null);
   // Own leaderboard standing (rank/total/score) — woven into share text as a
@@ -356,18 +359,33 @@ export function BracketApp() {
     // the page URL, not the image).
     if (net === 'native') {
       try {
-        const imgParams = new URLSearchParams(params);
-        imgParams.delete('share');
-        imgParams.delete('ref');
-        const imgUrl = `/api/share-image?${imgParams.toString()}`;
-        try {
-          const blob = await (await fetch(imgUrl)).blob();
-          const file = new File([blob], 'pick-the-cup.png', { type: blob.type || 'image/png' });
-          if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], text: `${text} ${url}` });
-            return;
-          }
-        } catch {}
+        let file: File | null = null;
+        // Prefer a straight capture of the modal's own share card — that way
+        // the attached PNG is exactly the card the user is looking at, instead
+        // of the landscape /api/share-image og:card (which stays as the
+        // link-unfurl image and as the fallback here).
+        const cardNode = shareCardRef.current;
+        if (cardNode) {
+          try {
+            const dataUrl = await toPng(cardNode, { backgroundColor: '#FFFDF5', pixelRatio: 2 });
+            const blob = await (await fetch(dataUrl)).blob();
+            file = new File([blob], 'pick-the-cup.png', { type: 'image/png' });
+          } catch {}
+        }
+        if (!file) {
+          const imgParams = new URLSearchParams(params);
+          imgParams.delete('share');
+          imgParams.delete('ref');
+          const imgUrl = `/api/share-image?${imgParams.toString()}`;
+          try {
+            const blob = await (await fetch(imgUrl)).blob();
+            file = new File([blob], 'pick-the-cup.png', { type: blob.type || 'image/png' });
+          } catch {}
+        }
+        if (file && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text: `${text} ${url}` });
+          return;
+        }
         await navigator.share({ text, url });
       } catch {}
       return;
@@ -592,7 +610,7 @@ export function BracketApp() {
       )}
       {showChampion && (
         <ChampionModal
-          res={res} champion={champion}
+          res={res} champion={champion} cardRef={shareCardRef}
           friend={friend} realSemis={realSemis}
           emailDone={emailDone} emailSaving={emailSaving} emailError={emailError} email={email}
           onEmailChange={e => commit({ email: e.target.value })}
@@ -1074,10 +1092,10 @@ function SponsorModal({ done, saving, error, onClose, company, name, email, onCo
               <div style={{ fontSize:30 }}>🤝</div>
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
-              <input value={company} onChange={e => onCompany(e.target.value)} placeholder="Company name" style={{ fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+              <input value={company} onChange={e => onCompany(e.target.value)} placeholder="Company name" style={{ fontFamily:"var(--font-archivo), sans-serif", fontSize:16, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
               <div style={{ display:'flex', gap:9 }}>
-                <input value={name} onChange={e => onName(e.target.value)} placeholder="Your name" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
-                <input value={email} onChange={e => onEmail(e.target.value)} placeholder="Work email" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+                <input value={name} onChange={e => onName(e.target.value)} placeholder="Your name" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:16, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+                <input value={email} onChange={e => onEmail(e.target.value)} placeholder="Work email" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:16, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
               </div>
               <button onClick={onSubmit} disabled={!valid || saving} style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:15, color: valid ? '#fff' : '#9b978f', background: saving ? '#9b978f' : valid ? '#14B87A' : '#efece4', border: `2.5px solid ${valid ? '#161616' : '#c8c4ba'}`, borderRadius:13, padding:13, cursor: (valid && !saving) ? 'pointer' : 'not-allowed', boxShadow: valid ? '3px 3px 0 #161616' : 'none' }}>
                 {saving ? 'Submitting…' : 'Reserve my slot → $100'}
@@ -1093,9 +1111,10 @@ function SponsorModal({ done, saving, error, onClose, company, name, email, onCo
 }
 
 /* ─── Champion Modal ─────────────────────────────────────────── */
-function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, onBoard, shareNotice }: {
+function ChampionModal({ res, champion, cardRef, friend, realSemis, emailDone, emailSaving, emailError, email, onEmailChange, onEmailSubmit, onClose, onShare, onBoard, shareNotice }: {
   res: Record<string, MatchResult>;
   champion: { name: string; flag: string } | null;
+  cardRef: React.RefObject<HTMLDivElement | null>;
   friend: FriendPicks | null;
   realSemis: Set<string>;
   emailDone: boolean; emailSaving: boolean; emailError: string; email: string;
@@ -1117,17 +1136,19 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
     let boxStyle: React.CSSProperties;
     let nameStyle: React.CSSProperties = { fontFamily:"var(--font-archivo-black), sans-serif", fontSize:11, color:'#161616' };
     let check = '';
+    // flex-basis (not fixed width) + minWidth:0 so four chips in a row can
+    // shrink a few px on narrow phones instead of overflowing the card.
     if (variant === 'green') {
-      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:108, height:40, border:'2.5px solid #161616', borderRadius:11, background:'#17C988', boxShadow:'3px 3px 0 #161616' };
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'0 1 108px', minWidth:0, height:40, border:'2.5px solid #161616', borderRadius:11, background:'#17C988', boxShadow:'3px 3px 0 #161616' };
       nameStyle = { ...nameStyle, fontSize:14, color:'#fff' };
       check = '✓';
     } else if (variant === 'dimBig') {
-      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:108, height:40, border:'2.5px solid #161616', borderRadius:11, background:'#fff', boxShadow:'3px 3px 0 #161616', opacity:.42 };
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'0 1 108px', minWidth:0, height:40, border:'2.5px solid #161616', borderRadius:11, background:'#fff', boxShadow:'3px 3px 0 #161616', opacity:.42 };
       nameStyle = { ...nameStyle, fontSize:14, textDecoration:'line-through' };
     } else if (variant === 'plain') {
-      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:70, height:40, border:'2px solid #161616', borderRadius:9, background:'#fff', boxShadow:'2px 2px 0 #161616' };
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'1 1 58px', minWidth:0, maxWidth:70, height:40, border:'2px solid #161616', borderRadius:9, background:'#fff', boxShadow:'2px 2px 0 #161616' };
     } else {
-      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'none', width:70, height:40, border:'2px solid #161616', borderRadius:9, background:'#fff', opacity:.42 };
+      boxStyle = { display:'flex', alignItems:'center', justifyContent:'center', gap:5, flex:'1 1 58px', minWidth:0, maxWidth:70, height:40, border:'2px solid #161616', borderRadius:9, background:'#fff', opacity:.42 };
       nameStyle = { ...nameStyle, textDecoration:'line-through' };
     }
     return (
@@ -1163,8 +1184,11 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
           </h2>
         </div>
 
-        {/* C2 Funnel Card */}
-        <div style={{ margin:'14px 0 16px', background:'#FBF6E8', border:'3px solid #161616', borderRadius:18, boxShadow:'5px 5px 0 #161616', padding:'18px 16px 16px', display:'flex', flexDirection:'column' }}>
+        {/* C2 Funnel Card — the padded wrapper (not the card itself) is what
+            native share captures, so the offset box-shadow isn't clipped and
+            the PNG gets a little cream bleed around the card. */}
+        <div ref={cardRef} style={{ margin:'14px -8px 16px', padding:8 }}>
+        <div style={{ background:'#FBF6E8', border:'3px solid #161616', borderRadius:18, boxShadow:'5px 5px 0 #161616', padding:'18px 16px 16px', display:'flex', flexDirection:'column' }}>
           <div style={{ textAlign:'center', marginBottom:8 }}>
             <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, letterSpacing:'.14em', color:'#9b978f' }}>FIFA WORLD CUP 2026</div>
             <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, color:'#FF3D8B', marginTop:2 }}>
@@ -1176,11 +1200,11 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
           <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:8.5, letterSpacing:'.12em', color:'#9b978f', textAlign:'center', marginBottom:8 }}>SEMI-FINALISTS</div>
           {champion ? (
             <div style={{ display:'flex' }}>
-              <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
+              <div style={{ flex:1, minWidth:0, display:'flex', justifyContent:'space-around', alignItems:'center', gap:5 }}>
                 {fbox(rSemiL?.a ?? null, semiVar(rSemiL?.a ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
                 {fbox(rSemiL?.b ?? null, semiVar(rSemiL?.b ?? null, rSemiL?.winner ?? null) as 'plain'|'out')}
               </div>
-              <div style={{ flex:1, display:'flex', justifyContent:'space-around', alignItems:'center' }}>
+              <div style={{ flex:1, minWidth:0, display:'flex', justifyContent:'space-around', alignItems:'center', gap:5 }}>
                 {fbox(rSemiR?.a ?? null, semiVar(rSemiR?.a ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
                 {fbox(rSemiR?.b ?? null, semiVar(rSemiR?.b ?? null, rSemiR?.winner ?? null) as 'plain'|'out')}
               </div>
@@ -1248,10 +1272,11 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
 
               {/* Champion */}
               <div style={{ display:'flex', justifyContent:'center', marginTop:4 }}>
-                <div style={{ border:'3px solid #161616', borderRadius:14, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', boxShadow:'4px 4px 0 #161616', padding:'10px 18px', display:'flex', alignItems:'center', gap:11, whiteSpace:'nowrap' }}>
+                <div style={{ border:'3px solid #161616', borderRadius:14, background:'linear-gradient(135deg,#FFD23C,#FFB01F)', boxShadow:'4px 4px 0 #161616', padding:'10px 18px', display:'flex', alignItems:'center', gap:11, whiteSpace:'nowrap', maxWidth:'100%' }}>
                   <span style={{ fontSize:30 }}>{champion.flag}</span>
                   <div style={{ textAlign:'left' }}>
-                    <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:21, color:'#161616', lineHeight:1 }}>{champion.name}</div>
+                    {/* clamp: "Netherlands"-length names must not overflow a 390px phone */}
+                    <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:'clamp(16px, 4.6vw, 21px)', color:'#161616', lineHeight:1 }}>{champion.name}</div>
                     <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:9, color:'#6b5a16', letterSpacing:'.1em', marginTop:2 }}>WORLD CHAMPION</div>
                   </div>
                   <span style={{ fontSize:26 }}>👑</span>
@@ -1264,6 +1289,7 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
             <span style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:13, color:'#161616' }}>PICK THE CUP</span>
             <span style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:10, color:'#9b978f' }}>#PickTheCup</span>
           </div>
+        </div>
         </div>
 
         {friend && <CompareStrip friend={friend} res={res} />}
@@ -1300,7 +1326,9 @@ function ChampionModal({ res, champion, friend, realSemis, emailDone, emailSavin
             <>
               <div style={{ fontFamily:"var(--font-space-mono), monospace", fontSize:11, color:'#56524b', marginBottom:8 }}>📬 SAVE MY BRACKET TO THIS EMAIL (&amp; JOIN THE LEADERBOARD)</div>
               <div style={{ display:'flex', gap:8 }}>
-                <input value={email} onChange={onEmailChange} placeholder="you@email.com" style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+                {/* 16px min font — anything smaller makes iOS Safari zoom in on focus
+                    and leave the page zoomed, so the fixed modal renders shifted/cut. */}
+                <input value={email} onChange={onEmailChange} placeholder="you@email.com" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:16, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
                 <button onClick={onEmailSubmit} disabled={emailSaving} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background: emailSaving ? '#9b978f' : '#14B87A', border:'2.5px solid #161616', borderRadius:12, padding:'11px 15px', cursor: emailSaving ? 'not-allowed' : 'pointer', boxShadow:'2px 2px 0 #161616' }}>{emailSaving ? 'Saving…' : 'Save'}</button>
               </div>
               {emailError && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:6, fontWeight:700 }}>{emailError}</div>}
@@ -1464,7 +1492,7 @@ function LoadModal({ loadEmail, status, onEmailChange, onLoad, onClose }: {
           <div style={{ fontFamily:"var(--font-archivo-black), sans-serif", fontSize:20, marginBottom:6 }}>📥 Load your bracket</div>
           <p style={{ fontSize:13.5, color:'#56524b', lineHeight:1.5, margin:'0 0 16px' }}>Enter the email you saved your bracket with — this replaces your current picks.</p>
           <div style={{ display:'flex', gap:8 }}>
-            <input value={loadEmail} onChange={e => onEmailChange(e.target.value)} placeholder="you@email.com" style={{ flex:1, fontFamily:"var(--font-archivo), sans-serif", fontSize:14, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
+            <input value={loadEmail} onChange={e => onEmailChange(e.target.value)} placeholder="you@email.com" style={{ flex:1, minWidth:0, fontFamily:"var(--font-archivo), sans-serif", fontSize:16, padding:'11px 13px', border:'2.5px solid #161616', borderRadius:12, outline:'none', background:'#fff' }} />
             <button onClick={onLoad} disabled={status === 'loading'} style={{ fontFamily:"var(--font-archivo), sans-serif", fontWeight:800, fontSize:13, color:'#fff', background: status === 'loading' ? '#9b978f' : '#2D6BFF', border:'2.5px solid #161616', borderRadius:12, padding:'11px 15px', cursor: status === 'loading' ? 'not-allowed' : 'pointer', boxShadow:'2px 2px 0 #161616' }}>{status === 'loading' ? 'Loading…' : 'Load'}</button>
           </div>
           {status === 'notfound' && <div style={{ color:'#D6336C', fontSize:11.5, marginTop:8, fontWeight:700 }}>No saved bracket for that email.</div>}
