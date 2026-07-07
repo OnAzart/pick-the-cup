@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { BracketApp } from "./BracketApp";
+import { SeoContent } from "./SeoContent";
+import { JsonLd } from "./JsonLd";
 
 const IMAGE_PARAMS = ['champion', 'semiLA', 'semiLB', 'semiLW', 'semiRA', 'semiRB', 'semiRW', 'by'] as const;
 
@@ -31,5 +33,11 @@ export async function generateMetadata({
 }
 
 export default function Home() {
-  return <BracketApp />;
+  return (
+    <>
+      <BracketApp />
+      <SeoContent />
+      <JsonLd />
+    </>
+  );
 }
